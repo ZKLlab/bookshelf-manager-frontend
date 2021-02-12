@@ -1,4 +1,7 @@
 <template>
+  <p v-if="oidcIsAuthenticated">
+    {{ oidcUser }}
+  </p>
   <div class="hello">
     <h1>{{ msg }}</h1>
     <p>
@@ -38,10 +41,19 @@
 </template>
 
 <script>
+  import { mapGetters } from 'vuex';
+
+
   export default {
     name: 'HelloWorld',
     props: {
       msg: String,
+    },
+    computed: {
+      ...mapGetters([
+        'oidcIsAuthenticated',
+        'oidcUser',
+      ]),
     },
   };
 </script>

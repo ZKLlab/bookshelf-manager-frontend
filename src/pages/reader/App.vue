@@ -2,10 +2,42 @@
   <div id="nav">
     <router-link to="/">Home</router-link>
     |
-    <router-link to="/about">About</router-link>
+    <router-link to="/about">About (Protected)</router-link>
+    <template v-if="oidcIsAuthenticated">
+      |||
+      {{ oidcUser.family_name }}{{ oidcUser.given_name }}
+      ({{ oidcUser.email }})
+      |
+      <a @click.prevent="signOut" href="javascript:void(0)">Sign out</a>
+    </template>
   </div>
   <router-view />
 </template>
+
+<script>
+  import { mapActions, mapGetters } from 'vuex';
+
+
+  export default {
+    name: 'App',
+    computed: {
+      ...mapGetters([
+        'oidcIsAuthenticated',
+        'oidcUser',
+      ]),
+    },
+    methods: {
+      ...mapActions([
+        'signOutOidcSilent',
+      ]),
+      signOut() {
+        this.signOutOidcSilent().then(() => {
+          this.$router.push('/');
+        });
+      },
+    },
+  };
+</script>
 
 <style lang="scss">
   #app {
