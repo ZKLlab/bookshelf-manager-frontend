@@ -1,4 +1,12 @@
 module.exports = {
+  devServer: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8089',
+        changeOrigin: true,
+      },
+    },
+  },
   pages: {
     reader: {
       entry: 'src/pages/reader/main.js',
