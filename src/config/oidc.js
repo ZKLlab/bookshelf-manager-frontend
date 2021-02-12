@@ -4,5 +4,5 @@ export const oidcSettings = {
   redirectUri: `http://localhost:8080/signin-callback.html`,
   silentRedirectUri: 'http://localhost:8080/silent-signin-callback.html',
   responseType: 'code',
-  scope: 'openid profile email roles',
+  scope: 'openid profile email offline_access roles',
 };
