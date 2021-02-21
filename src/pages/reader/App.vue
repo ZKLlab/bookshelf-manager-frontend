@@ -2,6 +2,8 @@
   <div id="nav">
     <router-link to="/">Home</router-link>
     |
+    <router-link to="/books">Books</router-link>
+    |
     <router-link to="/about">About (Protected)</router-link>
     <template v-if="oidcIsAuthenticated">
       |||
