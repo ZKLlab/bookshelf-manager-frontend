@@ -44,31 +44,53 @@
   height: 50%;
   width: 100%;
 }
+
+.position-info-container{
+  margin:5% 5% 5% 5%;
+  background-color:plum;
+}
+
+.button-container{
+  margin-top:5%;
+  margin-bottom:3%;
+}
 </style>
 
 <template>
   <div class="container">
     
     <Nav title="还书"  />
+    <!-- 列出这个人借的所有书的列表 -->
+    <div class="position-info-container">
+      <div>已选择图书：<span>深入理解计算机系统</span></div>
+      <div>提示书本应该放的位置信息</div>
+      <div>书籍左边是：xxx｜书籍右边是xxx</div>
+    </div>
     <div class="upload-image">
-      <UploadImage text="上传条形码"/>
+      <UploadImage text="上传归还后图片"/>
     </div>
-    <div>
-      
-    </div>
+    <div class="button-container">
+        <van-button plain type="primary" v-on:click="OnClick"
+          >确认还书</van-button
+        >
+      </div>
+
+    
   </div>
 </template>
 
 <script>
 import UploadImage from "../components/UploadImage";
 import Nav from "../components/Nav";
+import {Button} from "vant";
 import axios from "axios";
 
 export default {
   name: "Return",
   components: {
     UploadImage,
-    Nav
+    Nav,
+    [Button.name]:Button
   },
   data() {
     return {

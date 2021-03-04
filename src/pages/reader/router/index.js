@@ -5,7 +5,7 @@ import Home from '../views/Home.vue';
 import Borrow from '../views/Borrow.vue';
 import Return from '../views/Return.vue';
 import User from '../views/User.vue';
-
+import BookInfo from '../views/BookInfo.vue';
 
 const routes = [
   {
@@ -26,6 +26,14 @@ const routes = [
     path: '/borrow',
     name: 'Borrow',
     component: Borrow,
+    meta: {
+      isPublic: true,
+    },
+  },
+  {
+    path: '/bookinfo',
+    name: 'BookInfo',
+    component: BookInfo,
     meta: {
       isPublic: true,
     },

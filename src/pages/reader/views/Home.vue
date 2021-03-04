@@ -24,11 +24,10 @@
 </style>
 
 <template>
-  <!-- nav -->
   <div class="container">
     <!-- 欢迎信息+个人中心按钮 -->
     <div class="nav">
-      <van-nav-bar title="SHUOSC图书馆"  />
+      <van-nav-bar title="SHUOSC图书馆" />
     </div>
 
     <div>
@@ -48,7 +47,6 @@
         <van-button type="default" to="borrow">借书</van-button>
         <van-button type="default" to="return">还书</van-button>
       </div>
-
     </div>
 
     <!-- 图书搜索 -->
@@ -57,7 +55,9 @@
         <van-search v-model="value" shape="round" placeholder="搜索" />
       </center>
     </div>
-
+    <div>
+      {{booklist}}
+    </div>
     <!-- 图书列表+排序按钮 -->
     <div>
       <div>
@@ -65,7 +65,6 @@
         <van-icon name="fire-o" />
         <van-icon name="friends-o" />
       </div>
-
       <div>
         <van-list
           v-model:loading="book_state.loading"
@@ -96,11 +95,15 @@ import { Skeleton } from "vant";
 import { Card, Grid, GridItem } from "vant";
 import { reactive } from "vue";
 import { Icon, Button } from "vant";
+import axios from "axios";
 
 export default {
   name: "Home",
   data() {
     return {
+      booklist:[
+
+      ],
       books: [
         {
           bookTitle: "深入理解计算机系统",
@@ -157,9 +160,15 @@ export default {
       // 异步更新数据
       // setTimeout 仅做示例，真实场景中一般为 ajax 请求
       setTimeout(() => {
-        for (let i = 0; i < 5; i++) {
-          book_state.list.push(book_state.list[0]);
+      axios.get("http://books.dev.cloud.shuosc.com/api/books/603f9a80fad1d349121991bc").then((res) => {
+        if (res.data.code == 0) {
+          this.book_state.list = res.data;
+          this.booklist=res.data;
+          // this.$Message.success(res.data.msg)
+        } else {
+          // this.$Message.error(res.data.msg)
         }
+      });
 
         // 加载状态结束
         book_state.loading = false;
@@ -168,13 +177,14 @@ export default {
         if (book_state.list.length >= 10) {
           book_state.finished = true;
         }
+        
       }, 1000);
     };
-
     return {
       book_state,
       onLoad,
     };
   },
+  
 };
 </script>
