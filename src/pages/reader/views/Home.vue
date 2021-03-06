@@ -1,190 +1,447 @@
-<style scoped>
-.container {
-  margin-left: 5%;
-  margin-right: 5%;
-}
-.van-card {
-  background-color: #fff;
-  margin-left: 5%;
-  margin-right: 5%;
-  margin-top: 5%;
-  width: 90%;
-}
-.van-button {
-  color: #42b983;
-  height: 100px;
-  width: 48%;
-  font-size: 20px;
-  margin-left: 1%;
-  margin-right: 1%;
-}
-.van-icon {
-  color: #42b983;
-}
-</style>
-
 <template>
-  <div class="container">
-    <!-- 欢迎信息+个人中心按钮 -->
-    <div class="nav">
-      <van-nav-bar title="SHUOSC图书馆" />
-    </div>
-
+  <div class="page-header">
+    <h2 v-if="oidcIsAuthenticated">欢迎，{{ oidcUser.family_name }}{{ oidcUser.given_name }}</h2>
+    <h2 v-else @click="authenticateOidc">登录</h2>
     <div>
-      <van-cell
-        is-link
-        to="user"
-        title="欢迎，蔡卓悦"
-        value="个人中心"
-        label=""
-      >
-      </van-cell>
-    </div>
-
-    <!-- 借书还书大按钮 -->
-    <div>
-      <div>
-        <van-button type="default" to="borrow">借书</van-button>
-        <van-button type="default" to="return">还书</van-button>
-      </div>
-    </div>
-
-    <!-- 图书搜索 -->
-    <div>
-      <center>
-        <van-search v-model="value" shape="round" placeholder="搜索" />
-      </center>
-    </div>
-    <div>
-      {{booklist}}
-    </div>
-    <!-- 图书列表+排序按钮 -->
-    <div>
-      <div>
-        <span>图书列表</span>
-        <van-icon name="fire-o" />
-        <van-icon name="friends-o" />
-      </div>
-      <div>
-        <van-list
-          v-model:loading="book_state.loading"
-          :finished="book_state.finished"
-          finished-text="没有更多了"
-          @load="onLoad"
-        >
-          <div v-for="item in book_state.list" :key="item">
-            <van-card
-              :num="item.bookNumber"
-              :desc="'[' + item.bookAuthorCountry + ']' + item.bookAuthor"
-              :title="item.bookTitle"
-              thumb="https://img01.yzcdn.cn/vant/ipad.jpeg"
-            >
-            </van-card>
-          </div>
-        </van-list>
-      </div>
+      <a v-if="oidcIsAuthenticated" href="javascript:void(0)" @click="signOut">退出登录</a>
     </div>
   </div>
+
+  <!-- 借续还大按钮 -->
+  <div class="actions-wrapper">
+    <van-row :gutter="8" class="actions-area">
+      <van-col :span="8">
+        <BigButton
+          color="#ffbc4d"
+          first-line="借书"
+          large-text="借"
+          second-line="点此借书"
+          @click="showBorrow"
+        />
+      </van-col>
+      <van-col :span="8">
+        <BigButton
+          color="#7986cb"
+          first-line="续借"
+          large-text="续"
+          second-line="点此续借"
+        />
+      </van-col>
+      <van-col :span="8">
+        <BigButton
+          color="#4dd0e1"
+          first-line="还书"
+          large-text="还"
+          second-line="点此还书"
+        />
+      </van-col>
+    </van-row>
+    <van-button block class="btn-loans" icon="clock-o">
+      我的历史借阅
+    </van-button>
+  </div>
+
+  <div class="part-header">
+    <h3>图书列表</h3>
+    <div>
+      <van-search
+        v-model="searchValue"
+        background="transparent"
+        class="search-field"
+        placeholder="请输入搜索关键词"
+        shape="round"
+        @update:model-value="search"
+      />
+    </div>
+  </div>
+
+  <div v-if="bookListState.loading" class="book-list-loading">
+    <van-loading size="24px">加载中...</van-loading>
+  </div>
+
+  <div class="book-list">
+    <lazy-component>
+      <BookCard v-for="item in bookListState.list" :key="item.id" v-lazy="item" :book="item" />
+
+      <div
+        v-if="!bookListState.loading && !bookListState.error && bookListState.list.length > 0"
+        class="book-list-finish"
+      >
+        已经到底了
+      </div>
+    </lazy-component>
+  </div>
+
+  <van-empty
+    v-if="!bookListState.loading && !bookListState.error && bookListState.list.length === 0"
+    description="没有匹配的图书，换一个关键词试试~"
+    image="search"
+  />
+
+  <div
+    v-if="!bookListState.loading && bookListState.error"
+    class="book-list-finish"
+    @click="getBooks"
+  >
+    加载失败，点击此处重试
+  </div>
+
+  <van-action-sheet v-model:show="showBorrowActionSheet" cancel-text="取消" close-on-popstate title="书籍借阅">
+    <van-notice-bar
+      v-if="oidcIsAuthenticated && oidcUser.roles.indexOf('reader') < 0"
+      :scrollable="false"
+      left-icon="warning-o"
+      text="很抱歉，你似乎没有借阅权限。如有疑问，请与管理员取得联系。"
+      wrapable
+    />
+    <div class="borrow-action-sheet-wrapper">
+      <p class="borrow-action-sheet-section-header">选择本次借阅数量并上传书脊条码照片</p>
+      <van-row :gutter="8" class="borrow-number-row">
+        <van-col v-for="i in 4" v-bind:key="i" :span="6">
+          <van-button
+            :type="numBorrowBooks === i ? `primary` : undefined"
+            block
+            plain
+            size="large"
+            @click="numBorrowBooks = numBorrowBooks === i ? null : i"
+          >
+            <span class="borrow-number-icon">{{ i }} <small>本</small></span>
+          </van-button>
+        </van-col>
+      </van-row>
+      <van-row :gutter="8" class="borrow-number-row">
+        <van-col v-for="i in 4" v-bind:key="i + 4" :span="6">
+          <van-button
+            :type="numBorrowBooks === i + 4 ? `primary` : undefined"
+            block
+            plain
+            size="large"
+            @click="numBorrowBooks = numBorrowBooks === i + 4 ? null : i + 4"
+          >
+            <span class="borrow-number-icon">{{ i + 4 }} <small>本</small></span>
+          </van-button>
+        </van-col>
+      </van-row>
+
+      <van-uploader
+        :after-read="afterRead"
+        :disabled="numBorrowBooks == null"
+        :max-count="1"
+        class="borrow-uploader"
+        result-type="file"
+      >
+        <van-button
+          :disabled="numBorrowBooks == null"
+          block
+          icon="photograph"
+          size="large"
+          type="primary"
+        >
+          <strong>{{ numBorrowBooks == null ? '请先选择借阅数量' : `上传包含 ${numBorrowBooks} 个条码的图片` }}</strong>
+        </van-button>
+      </van-uploader>
+
+      <p class="borrow-action-sheet-section-header">或者</p>
+      <van-button block icon="edit" size="large">
+        <strong>手动输入条码</strong>
+      </van-button>
+    </div>
+  </van-action-sheet>
 </template>
 
 <script>
-import { NavBar, Search } from "vant";
-import { Cell, CellGroup } from "vant";
-import { List } from "vant";
-import { Skeleton } from "vant";
-import { Card, Grid, GridItem } from "vant";
-import { reactive } from "vue";
-import { Icon, Button } from "vant";
-import axios from "axios";
+import BigButton from '@/pages/reader/components/BigButton';
+import BookCard from '@/pages/reader/components/BookCard';
+import axios from 'axios';
+import { ActionSheet, Button, Col, Empty, Loading, NoticeBar, Row, Search, Toast, Uploader } from 'vant';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { useStore } from 'vuex';
+
 
 export default {
-  name: "Home",
-  data() {
-    return {
-      booklist:[
-
-      ],
-      books: [
-        {
-          bookTitle: "深入理解计算机系统",
-          bookAuthor: "",
-          bookAuthorCountry: "",
-          bookPublishingTime: "",
-          bookPublishingFirm: "",
-          bookNumber: "",
-        },
-        {
-          bookTitle: "编码",
-          bookAuthor: "",
-          bookAuthorCountry: "",
-          bookPublishingTime: "",
-          bookPublishingFirm: "",
-          bookNumber: "",
-        },
-      ],
-    };
-  },
+  name: 'Home',
   components: {
-    [NavBar.name]: NavBar,
-    [Search.name]: Search,
-    [Cell.name]: Cell,
-    [CellGroup.name]: CellGroup,
-    [List.name]: List,
-    [Skeleton.name]: Skeleton,
-    [Card.name]: Card,
-    [Grid.name]: Grid,
-    [GridItem.name]: GridItem,
-    [Icon.name]: Icon,
+    BigButton,
+    BookCard,
+    [ActionSheet.name]: ActionSheet,
     [Button.name]: Button,
-    // [ActionBarButton.name]:ActionBarButton
+    [Empty.name]: Empty,
+    [Loading.name]: Loading,
+    [NoticeBar.name]: NoticeBar,
+    [Row.name]: Row,
+    [Col.name]: Col,
+    [Search.name]: Search,
+    [Uploader.name]: Uploader,
   },
   setup() {
-    const book_state = reactive({
-      list: [
-        {
-          bookTitle: "深入理解计算机系统",
-          bookAuthor: "蔡卓悦",
-          bookISBN: "",
-          bookAuthorCountry: "美国",
-          bookPublishingTime: "2000-12-06",
-          bookPublishingFirm: "机械工业出版社",
-          bookNumber: "1",
-          bookPicUrl: "",
-        },
-      ],
+    const store = useStore();
+
+    const searchValue = ref('');
+    const showBorrowActionSheet = ref(false);
+    const borrowBarcode = ref('');
+    const numBorrowBooks = ref(null);
+
+    const bookListState = reactive({
       loading: false,
-      finished: false,
+      finish: false,
+      error: false,
+      list: [],
+      originalList: [],
     });
 
-    const onLoad = () => {
-      // 异步更新数据
-      // setTimeout 仅做示例，真实场景中一般为 ajax 请求
-      setTimeout(() => {
-      axios.get("http://books.dev.cloud.shuosc.com/api/books/603f9a80fad1d349121991bc").then((res) => {
-        if (res.data.code == 0) {
-          this.book_state.list = res.data;
-          this.booklist=res.data;
-          // this.$Message.success(res.data.msg)
-        } else {
-          // this.$Message.error(res.data.msg)
-        }
-      });
-
-        // 加载状态结束
-        book_state.loading = false;
-
-        // 数据全部加载完成
-        if (book_state.list.length >= 10) {
-          book_state.finished = true;
-        }
-        
-      }, 1000);
+    const getBooks = async () => {
+      bookListState.loading = true;
+      try {
+        const response = await axios.get('/api/books');
+        bookListState.originalList = response.data.data;
+        bookListState.error = false;
+        filterBooks();
+      } catch (e) {
+        bookListState.error = true;
+      } finally {
+        bookListState.loading = false;
+      }
     };
+
+    const filterBooks = () => {
+      const search = searchValue.value.trim();
+      if (search.length > 0) {
+        const keywordRegExps = search
+          .split(/\s+/)
+          .map(word => new RegExp(word
+            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ui'));
+        const list = [];
+        bookListState.originalList.forEach(book => {
+          let score = 0;
+          if (book.isbn === search) {
+            score += 10;
+          }
+          if (keywordRegExps.some(regExp => regExp.test(book.title))) {
+            score += 1;
+          }
+          if (keywordRegExps.some(regExp => book.subjects.some(subject => regExp.test(subject)))) {
+            score += 0.9;
+          }
+          if (keywordRegExps.some(regExp => regExp.test(book.author))) {
+            score += 0.8;
+          }
+          if (keywordRegExps.some(regExp => regExp.test(book.publisher))) {
+            score += 0.7;
+          }
+          if (keywordRegExps.some(regExp => regExp.test(book.parallelTitle))) {
+            score += 0.6;
+          }
+          if (score > 0) {
+            list.push({
+              book,
+              score,
+            });
+          }
+        });
+        list.sort((a, b) => b.score - a.score);
+
+        bookListState.list = list.map(item => item.book);
+      } else {
+        bookListState.list = bookListState.originalList;
+      }
+    };
+
+    let throttleTimer = null;
+    let throttleTail = false;
+
+    const search = () => {
+      if (throttleTimer == null) {
+        filterBooks();
+        throttleTimer = setTimeout(() => {
+          throttleTimer = null;
+          if (throttleTail) {
+            throttleTail = false;
+            search();
+          }
+        }, 500);
+      } else {
+        throttleTail = true;
+      }
+    };
+
+    onUnmounted(() => {
+      if (throttleTimer != null) {
+        clearTimeout(throttleTimer);
+      }
+    });
+
+    onMounted(async () => {
+      await getBooks();
+    });
+
+    const showBorrow = () => {
+      if (!store.getters.oidcIsAuthenticated) {
+        Toast('请先登录', {
+          overlay: true,
+          forbidClick: true,
+          duration: 0,
+        });
+        setTimeout(() => store.dispatch('authenticateOidc'), 500);
+        return;
+      }
+      showBorrowActionSheet.value = true;
+      numBorrowBooks.value = null;
+    };
+
+    const afterRead = async file => {
+      // 此时可以自行将文件上传至服务器
+      console.log(file.file);
+      Toast.loading({
+        message: '上传中...',
+        forbidClick: true,
+        duration: 0,
+      });
+      const formData = new FormData();
+      formData.append('file', file.file);
+      try {
+        const response = await axios.post('/api/barcode/image', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        Toast.clear();
+        if (response.data.data.length === numBorrowBooks.value) {
+          console.log(response.data.data);
+        } else if (response.data.data.length > 0) {
+          Toast.fail('识别到的条码数量与选择数量的不一致');
+        } else {
+          Toast.fail('没有识别到有效的条码');
+        }
+      } catch (e) {
+        Toast.fail('识别失败，请重试');
+      }
+    };
+
+    const signOut = async () => {
+      await store.dispatch('signOutOidcSilent');
+      Toast('退出登录成功');
+    };
+
     return {
-      book_state,
-      onLoad,
+      bookListState,
+      searchValue,
+      showBorrowActionSheet,
+      borrowBarcode,
+      numBorrowBooks,
+      getBooks,
+      filterBooks,
+      search,
+      oidcUser: computed(() => store.getters.oidcUser),
+      oidcIsAuthenticated: computed(() => store.getters.oidcIsAuthenticated),
+      authenticateOidc: () => store.dispatch('authenticateOidc'),
+      showBorrow,
+      afterRead,
+      signOut,
     };
   },
-  
 };
 </script>
+
+<style lang="scss" scoped>
+.actions-wrapper {
+  padding: 0 12px;
+
+  .btn-loans {
+    margin-top: 8px;
+  }
+}
+
+.page-header, .part-header {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 0 12px 0 24px;
+
+  h2, h3 {
+    margin: 0 16px 0 0;
+    white-space: nowrap;
+  }
+
+  h2 {
+    font-size: 24px;
+  }
+
+  h3 {
+    font-size: 18px;
+  }
+
+
+  a {
+    font-size: 14px;
+    padding: 8px 12px;
+    color: #969799;
+  }
+}
+
+.page-header {
+  margin: 20px 0;
+}
+
+.part-header {
+  margin: 24px 0 12px;
+}
+
+.search-field {
+  padding: 0;
+
+  // noinspection CssInvalidPseudoSelector
+  :deep(.van-search__content) {
+    border: 1px solid #ebedf0;
+    background: white;
+  }
+}
+
+.book-list {
+  padding: 0 12px;
+}
+
+.book-list-loading {
+  padding: 16px 0 32px;
+  text-align: center;
+}
+
+.book-list-finish {
+  font-size: 12px;
+  padding: 16px 0 48px;
+  text-align: center;
+  color: #646566;
+}
+
+.borrow-number-icon {
+  font-size: 24px;
+
+  small {
+    font-size: 14px;
+  }
+}
+
+.borrow-action-sheet-wrapper {
+  padding: 0 12px 12px;
+}
+
+.borrow-action-sheet-section-header {
+  font-size: 13px;
+  padding: 0 8px;
+  text-align: center;
+  color: #646566;
+}
+
+.borrow-number-row {
+  margin-bottom: 8px;
+}
+
+.borrow-uploader {
+  display: block;
+
+  // noinspection CssInvalidPseudoSelector
+  :deep(.van-uploader__wrapper) {
+    display: block;
+  }
+}
+</style>
