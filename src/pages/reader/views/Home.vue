@@ -88,7 +88,7 @@
 
   <van-action-sheet v-model:show="showBorrowActionSheet" cancel-text="取消" close-on-popstate title="书籍借阅">
     <van-notice-bar
-      v-if="oidcIsAuthenticated && oidcUser.roles.indexOf('reader') < 0"
+      v-if="oidcIsAuthenticated && !oidcUser.roles.includes('reader')"
       :scrollable="false"
       left-icon="warning-o"
       text="很抱歉，你似乎没有借阅权限。如有疑问，请与管理员取得联系。"
@@ -142,8 +142,8 @@
       </van-uploader>
 
       <p class="borrow-action-sheet-section-header">或者</p>
-      <van-button block icon="edit" size="large">
-        <strong>手动输入条码</strong>
+      <van-button block icon="edit" size="large" to="/borrow">
+        <strong>手动输入条码号</strong>
       </van-button>
     </div>
   </van-action-sheet>
@@ -153,8 +153,10 @@
 import BigButton from '@/pages/reader/components/BigButton';
 import BookCard from '@/pages/reader/components/BookCard';
 import axios from 'axios';
+import imageCompression from 'browser-image-compression';
 import { ActionSheet, Button, Col, Empty, Loading, NoticeBar, Row, Search, Toast, Uploader } from 'vant';
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 
 
@@ -175,6 +177,7 @@ export default {
   },
   setup() {
     const store = useStore();
+    const router = useRouter();
 
     const searchValue = ref('');
     const showBorrowActionSheet = ref(false);
@@ -289,15 +292,23 @@ export default {
     };
 
     const afterRead = async file => {
-      // 此时可以自行将文件上传至服务器
-      console.log(file.file);
+      Toast.loading({
+        message: '压缩中...',
+        forbidClick: true,
+        duration: 0,
+      });
+      const compressedFile = await imageCompression(file.file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      });
       Toast.loading({
         message: '上传中...',
         forbidClick: true,
         duration: 0,
       });
       const formData = new FormData();
-      formData.append('file', file.file);
+      formData.append('file', compressedFile);
       try {
         const response = await axios.post('/api/barcode/image', formData, {
           headers: {
@@ -306,13 +317,19 @@ export default {
         });
         Toast.clear();
         if (response.data.data.length === numBorrowBooks.value) {
-          console.log(response.data.data);
+          await router.push({
+            path: '/borrow',
+            query: {
+              codes: response.data.data.join(','),
+            },
+          });
         } else if (response.data.data.length > 0) {
           Toast.fail('识别到的条码数量与选择数量的不一致');
         } else {
           Toast.fail('没有识别到有效的条码');
         }
       } catch (e) {
+        console.warn(e);
         Toast.fail('识别失败，请重试');
       }
     };
@@ -370,7 +387,6 @@ export default {
   h3 {
     font-size: 18px;
   }
-
 
   a {
     font-size: 14px;

@@ -1,194 +1,288 @@
-<style lang="scss" scoped>
-.container {
-  margin-left: 5%;
-  margin-right: 5%;
-}
-
-.borrow-container {
-  margin-top: 5%;
-}
-
-.success-container {
-  margin-top: 5px;
-  text-align: center;
-  display: block;
-}
-
-.button-container {
-  margin-top: 5%;
-  margin-bottom: 3%;
-}
-</style>
-
 <template>
-  <div class="container">
-    <Nav title="借书" />
-    <div class="upload-container">
-      <UploadImage text="上传条形码" />
-    </div>
-    <div class="borrow-container">
-      <div>
-        <van-form @aubmit="onSubmit">
-          <van-field name="stepper" label="步进器">
-            <!-- <template #img> -->
-            <span>书籍数：</span><van-stepper v-model="stepper" />
-            <!-- </template> -->
-          </van-field>
-        </van-form>
-      </div>
+  <van-notice-bar
+    v-if="oidcIsAuthenticated && !oidcUser.roles.includes('reader')"
+    :scrollable="false"
+    left-icon="warning-o"
+    text="很抱歉，你似乎没有借阅权限。如有疑问，请与管理员取得联系。"
+    wrapable
+  />
 
-      <div class="button-container">
-        <van-button plain type="primary" v-on:click="OnClick"
-          >确认无误 上传借书</van-button
+  <template v-if="initialCodes == null">
+    <div class="part-header">
+      <h2>手动输入条码号</h2>
+    </div>
+    <van-password-input
+      :focused="showKeyboard"
+      :gutter="4"
+      :length="7"
+      :mask="false"
+      :value="barcodeValue"
+      info="条码号在书的扉页和最后一页，条码下方"
+      @focus="showKeyboard = true"
+    />
+  </template>
+
+  <template v-if="resultList.length > 0">
+    <div class="part-header">
+      <h3>借阅结果</h3>
+    </div>
+    <div class="result-list-wrapper">
+      <van-cell-group>
+        <van-cell
+          v-for="item in resultList"
+          v-bind:key="item.uniqueId"
+          :is-link="(initialCodes == null && item.succeed === false) || item.error"
+          class="result-list-item"
+          @click="clickResult(item)"
         >
-      </div>
-
-      <div class="success-container">
-        <div>
-          <van-divider />
-          <!-- <div style="height:30px;line-height:30px;"> -->
-          <!-- <span>借阅成功列表</span> -->
-          <!-- </div> -->
-          <div>
-            <!-- <van-list
-              v-model:loading="book_state.loading"
-              :finished="book_state.finished"
-              finished-text="没有更多了"
-              @load="onLoad"
-            > -->
-            <div v-for="item in books" :key="item">
-              <van-card
-                :num="item.bookNumber"
-                :desc="'[' + item.bookAuthorCountry + ']' + item.bookAuthor"
-                :title="item.bookTitle"
-                thumb="https://img01.yzcdn.cn/vant/ipad.jpeg"
-              >
-              </van-card>
-            </div>
-            <!-- </van-list> -->
+          <div v-if="item.succeed === true" class="result-list-item__line-zero">
+            <h4 class="van-ellipsis">{{ item.bookName }}</h4>
+            <p class="van-ellipsis">{{ item.author }}</p>
           </div>
-        </div>
-      </div>
+          <div class="result-list-item__line-one">
+            <van-loading v-if="item.succeed == null && !item.error" :size="18" type="spinner">
+              {{ item.message }}
+            </van-loading>
+            <span v-else-if="item.succeed === false" class="result-fail">{{ item.message }}</span>
+            <span v-else-if="item.succeed === true" class="result-succeed">{{ item.message }}</span>
+            <span v-else>{{ item.message }}</span>
+            <van-tag color="#f5f5f5" text-color="#616161">{{ item.barcode }}</van-tag>
+          </div>
+
+          <template #right-icon>
+            <van-icon v-if="initialCodes == null && item.succeed === false" class="van-cell__right-icon" name="cross" />
+            <van-icon v-else-if="item.error" class="van-cell__right-icon" name="replay" />
+          </template>
+        </van-cell>
+      </van-cell-group>
     </div>
-  </div>
+
+    <div class="finish-wrapper">
+      <van-button :disabled="isLoading()" block type="primary" @click="back">完成</van-button>
+    </div>
+  </template>
+
+  <van-number-keyboard
+    v-model="barcodeValue"
+    :maxlength="7"
+    :show="showKeyboard"
+    close-button-text="完成"
+    @blur="showKeyboard = false"
+    @delete="onDelete"
+  />
 </template>
 
 <script>
-import { NavBar, Icon, Stepper, Divider } from "vant";
-import UploadImage from "../components/UploadImage";
-import Nav from "../components/Nav.vue";
-import axios from "axios";
-import { reactive } from "vue";
-import { Card, List, Cell, Button, Toast } from "vant";
+import axios from 'axios';
+import { Button, Cell, CellGroup, Icon, Loading, NoticeBar, NumberKeyboard, PasswordInput, Tag } from 'vant';
+import { computed, nextTick, onMounted, ref, toRef, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
+
 
 export default {
-  name: "Borrow",
+  name: 'Borrow',
+  props: {
+    codes: {
+      type: Array,
+      require: false,
+    },
+  },
   components: {
-    [NavBar.name]: NavBar,
-    [Icon.name]: Icon,
-    [Card.name]: Card,
-    [List.name]: List,
-    [Cell.name]: Cell,
     [Button.name]: Button,
-    [Divider.name]: Divider,
-    [Toast.name]: Toast,
-    UploadImage,
-    Nav,
-    [Stepper.name]: Stepper,
+    [CellGroup.name]: CellGroup,
+    [Cell.name]: Cell,
+    [Icon.name]: Icon,
+    [Loading.name]: Loading,
+    [NoticeBar.name]: NoticeBar,
+    [NumberKeyboard.name]: NumberKeyboard,
+    [PasswordInput.name]: PasswordInput,
+    [Tag.name]: Tag,
   },
-  data() {
-    return {
-      img: "",
-      stepper: 1,
-      books: [
-        {
-          bookTitle: "深入理解计算机系统",
-          bookAuthor: "蔡卓悦·蔡卓悦蔡卓悦蔡卓悦",
-          bookAuthorCountry: "美国",
-          bookPublishingTime: "2021-2-25",
-          bookPublishingFirm: "机械工业出版社",
-          bookNumber: "3",
-        },
-        {
-          bookTitle: "编码",
-          bookAuthor: "蔡卓悦",
-          bookAuthorCountry: "美国",
-          bookPublishingTime: "1998-5-20",
-          bookPublishingFirm: "电子科技出版社",
-          bookNumber: "5",
-        },
-      ],
+  setup(props) {
+    const store = useStore();
+    const router = useRouter();
+
+    const initialCodes = ref(toRef(props, 'codes').value);
+    const barcodeValue = ref('');
+    const showKeyboard = ref(false);
+    const resultList = ref([]);
+
+    const borrow = async codes => {
+      const uniqueIds = [];
+      codes.forEach((code, i) => {
+        const item = {
+          uniqueId: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
+          barcode: code,
+          succeed: null,
+          message: '正在查询结果……',
+          error: false,
+        };
+        uniqueIds.push(item.uniqueId);
+        resultList.value.splice(i, 0, item);
+      });
+      try {
+        const response = await axios.post('/api/borrow', codes);
+        response.data.data.forEach(originalItem => {
+          const item = resultList.value
+            .find(result => uniqueIds.includes(result.uniqueId) && result.barcode === originalItem.barcode);
+          item.succeed = originalItem.succeed;
+          item.message = originalItem.message;
+          if (item.succeed) {
+            item.bookName = originalItem.bookName;
+            item.author = originalItem.author;
+          }
+        });
+      } catch (e) {
+        resultList.value.forEach(item => {
+          if (uniqueIds.includes(item.uniqueId)) {
+            item.message = e.response?.status === 403 ? '联系管理员获取借阅权限' : '借阅时发生错误，点此重试';
+            item.error = true;
+          }
+        });
+      }
     };
-  },
-  methods: {
-    onClick() {
-      Toast("提示内容!!!!!!!!!!!!!!!!");
-    },
-    getFile(e) {
-      let file = e.target.files[0];
-      console.log(file);
-      let param = new FormData(); //创建form对象
-      param.append("file", file, file.name); //通过append向form对象添加数据
-      param.append("id", this.token);
-      console.log(file);
-      let config = {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }; //添加请求头
-      axios.post("/wx/goods/uploadPicture", param, config).then((res) => {
-        if (res.data.code == 0) {
-          this.img = res.data.url;
-          this.newImg = res.data.url;
-          // this.$Message.success(res.data.msg)
-        } else {
-          // this.$Message.error(res.data.msg)
+
+    const retry = async item => {
+      item.succeed = null;
+      item.error = false;
+      item.message = '正在重新查询结果……';
+      try {
+        const response = await axios.post('/api/borrow', [item.barcode]);
+        item.succeed = response.data.data[0].succeed;
+        item.message = response.data.data[0].message;
+        if (item.succeed) {
+          item.bookName = response.data.data[0].bookName;
+          item.author = response.data.data[0].author;
         }
-      });
-    },
-    // 点击触发input的点击事件
-    clickFile() {
-      this.$refs.leftFile.click();
-    },
-    setup() {
-      const book_state = reactive({
-        list: [
-          {
-            bookTitle: "深入理解计算机系统",
-            bookAuthor: "蔡卓悦",
-            bookISBN: "",
-            bookAuthorCountry: "美国",
-            bookPublishingTime: "2000-12-06",
-            bookPublishingFirm: "机械工业出版社",
-            bookNumber: "1",
-            bookPicUrl: "",
-          },
-        ],
-        loading: false,
-        finished: false,
-      });
-      const onLoad = () => {
-        // 异步更新数据
-        // setTimeout 仅做示例，真实场景中一般为 ajax 请求
-        setTimeout(() => {
-          for (let i = 0; i < 5; i++) {
-            book_state.list.push(book_state.list[0]);
-          }
+      } catch (e) {
+        item.message = e.response?.status === 403 ? '联系管理员获取借阅权限' : '借阅时发生错误，点此重试';
+        item.error = true;
+      }
+    };
 
-          // 加载状态结束
-          book_state.loading = false;
+    if (initialCodes.value != null) {
+      router.replace({
+        path: '',
+        query: {},
+        replace: true,
+      });
+    }
 
-          // 数据全部加载完成
-          if (book_state.list.length >= 10) {
-            book_state.finished = true;
-          }
-        }, 1000);
-      };
-      return {
-        book_state,
-        onLoad,
-      };
-    },
+    const clickResult = item => {
+      if (initialCodes.value == null && item.succeed === false) {
+        resultList.value.splice(resultList.value.indexOf(item), 1);
+      } else if (item.error) {
+        retry(item);
+      }
+    };
+
+    const onDelete = () => {
+      nextTick(() => {
+        barcodeValue.value = '';
+      });
+    };
+
+    const back = () => {
+      router.go(-1);
+    };
+
+    watch(barcodeValue, code => {
+      if (code.length === 7) {
+        borrow([code]);
+        onDelete();
+      }
+    });
+
+    onMounted(async () => {
+      if (initialCodes.value != null) {
+        await borrow(initialCodes.value);
+      }
+    });
+
+    return {
+      initialCodes,
+      barcodeValue,
+      showKeyboard,
+      resultList,
+      clickResult,
+      onDelete,
+      back,
+      oidcUser: computed(() => store.getters.oidcUser),
+      oidcIsAuthenticated: computed(() => store.getters.oidcIsAuthenticated),
+      isLoading: () => resultList.value.some(result => result.succeed == null && !result.error),
+    };
   },
 };
 </script>
+
+<style lang="scss" scoped>
+.part-header {
+  margin: 24px 0 18px;
+  padding: 0 24px;
+
+  h2 {
+    font-size: 18px;
+    margin: 0 16px 0 0;
+    white-space: nowrap;
+  }
+
+  h3 {
+    font-size: 16px;
+    margin: 0 16px 0 0;
+    white-space: nowrap;
+  }
+}
+
+.result-list-wrapper {
+  //padding: 0 16px;
+}
+
+.result-list-item {
+  // noinspection CssInvalidPseudoSelector
+  :deep(.van-cell__value) {
+    flex: auto;
+  }
+
+  .result-list-item__line-zero {
+    margin-bottom: 2px;
+    padding: 4px 0;
+
+    h4 {
+      font-size: 17px;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    p {
+      font-size: 12px;
+      margin: 0;
+      color: #969799;
+    }
+  }
+
+  .result-list-item__line-one {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .van-cell__right-icon {
+    margin-left: 8px;
+  }
+}
+
+.result-succeed {
+  color: #07c160;
+}
+
+.result-fail {
+  color: #ee0a24;
+}
+
+.finish-wrapper {
+  margin-top: 16px;
+  padding: 0 16px 32px;
+}
+</style>
