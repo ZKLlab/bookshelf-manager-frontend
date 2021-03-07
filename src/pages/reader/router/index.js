@@ -5,6 +5,8 @@ import BookInfo from '../views/BookInfo.vue';
 import Borrow from '../views/Borrow.vue';
 import Home from '../views/Home.vue';
 import Return from '../views/Return.vue';
+import UserHistory from '../views/UserHistory.vue';
+
 
 
 const routes = [
@@ -31,6 +33,11 @@ const routes = [
     meta: {
       isPublic: true,
     },
+  },
+  {
+    path: '/userhistory',
+    name: 'UserHistory',
+    component: UserHistory,
   },
   {
     path: '/return',

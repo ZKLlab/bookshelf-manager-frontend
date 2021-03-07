@@ -1,9 +1,13 @@
 <template>
   <div class="page-header">
-    <h2 v-if="oidcIsAuthenticated">欢迎，{{ oidcUser.family_name }}{{ oidcUser.given_name }}</h2>
+    <h2 v-if="oidcIsAuthenticated">
+      欢迎，{{ oidcUser.family_name }}{{ oidcUser.given_name }}
+    </h2>
     <h2 v-else @click="authenticateOidc">登录</h2>
     <div>
-      <a v-if="oidcIsAuthenticated" href="javascript:void(0)" @click="signOut">退出登录</a>
+      <a v-if="oidcIsAuthenticated" href="javascript:void(0)" @click="signOut"
+        >退出登录</a
+      >
     </div>
   </div>
 
@@ -36,7 +40,7 @@
         />
       </van-col>
     </van-row>
-    <van-button block class="btn-loans" icon="clock-o">
+    <van-button block class="btn-loans" icon="clock-o" @click="showUserHistory">
       我的历史借阅
     </van-button>
   </div>
@@ -61,10 +65,18 @@
 
   <div class="book-list">
     <lazy-component>
-      <BookCard v-for="item in bookListState.list" :key="item.id" v-lazy="item" :book="item" />
-
+      <BookCard
+        v-for="item in bookListState.list"
+        :key="item.id"
+        v-lazy="item"
+        :book="item"
+      />
       <div
-        v-if="!bookListState.loading && !bookListState.error && bookListState.list.length > 0"
+        v-if="
+          !bookListState.loading &&
+            !bookListState.error &&
+            bookListState.list.length > 0
+        "
         class="book-list-finish"
       >
         已经到底了
@@ -73,7 +85,11 @@
   </div>
 
   <van-empty
-    v-if="!bookListState.loading && !bookListState.error && bookListState.list.length === 0"
+    v-if="
+      !bookListState.loading &&
+        !bookListState.error &&
+        bookListState.list.length === 0
+    "
     description="没有匹配的图书，换一个关键词试试~"
     image="search"
   />
@@ -86,7 +102,12 @@
     加载失败，点击此处重试
   </div>
 
-  <van-action-sheet v-model:show="showBorrowActionSheet" cancel-text="取消" close-on-popstate title="书籍借阅">
+  <van-action-sheet
+    v-model:show="showBorrowActionSheet"
+    cancel-text="取消"
+    close-on-popstate
+    title="书籍借阅"
+  >
     <van-notice-bar
       v-if="oidcIsAuthenticated && !oidcUser.roles.includes('reader')"
       :scrollable="false"
@@ -95,7 +116,9 @@
       wrapable
     />
     <div class="borrow-action-sheet-wrapper">
-      <p class="borrow-action-sheet-section-header">选择本次借阅数量并上传书脊条码照片</p>
+      <p class="borrow-action-sheet-section-header">
+        选择本次借阅数量并上传书脊条码照片
+      </p>
       <van-row :gutter="8" class="borrow-number-row">
         <van-col v-for="i in 4" v-bind:key="i" :span="6">
           <van-button
@@ -118,7 +141,9 @@
             size="large"
             @click="numBorrowBooks = numBorrowBooks === i + 4 ? null : i + 4"
           >
-            <span class="borrow-number-icon">{{ i + 4 }} <small>本</small></span>
+            <span class="borrow-number-icon"
+              >{{ i + 4 }} <small>本</small></span
+            >
           </van-button>
         </van-col>
       </van-row>
@@ -137,7 +162,11 @@
           size="large"
           type="primary"
         >
-          <strong>{{ numBorrowBooks == null ? '请先选择借阅数量' : `上传包含 ${numBorrowBooks} 个条码的图片` }}</strong>
+          <strong>{{
+            numBorrowBooks == null
+              ? "请先选择借阅数量"
+              : `上传包含 ${numBorrowBooks} 个条码的图片`
+          }}</strong>
         </van-button>
       </van-uploader>
 
@@ -150,18 +179,28 @@
 </template>
 
 <script>
-import BigButton from '@/pages/reader/components/BigButton';
-import BookCard from '@/pages/reader/components/BookCard';
-import axios from 'axios';
-import imageCompression from 'browser-image-compression';
-import { ActionSheet, Button, Col, Empty, Loading, NoticeBar, Row, Search, Toast, Uploader } from 'vant';
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useStore } from 'vuex';
-
+import BigButton from "@/pages/reader/components/BigButton";
+import BookCard from "@/pages/reader/components/BookCard";
+import axios from "axios";
+import imageCompression from "browser-image-compression";
+import {
+  ActionSheet,
+  Button,
+  Col,
+  Empty,
+  Loading,
+  NoticeBar,
+  Row,
+  Search,
+  Toast,
+  Uploader,
+} from "vant";
+import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useStore } from "vuex";
 
 export default {
-  name: 'Home',
+  name: "Home",
   components: {
     BigButton,
     BookCard,
@@ -178,12 +217,10 @@ export default {
   setup() {
     const store = useStore();
     const router = useRouter();
-
-    const searchValue = ref('');
+    const searchValue = ref("");
     const showBorrowActionSheet = ref(false);
-    const borrowBarcode = ref('');
+    const borrowBarcode = ref("");
     const numBorrowBooks = ref(null);
-
     const bookListState = reactive({
       loading: false,
       finish: false,
@@ -195,7 +232,7 @@ export default {
     const getBooks = async () => {
       bookListState.loading = true;
       try {
-        const response = await axios.get('/api/books');
+        const response = await axios.get("/api/books");
         bookListState.originalList = response.data.data;
         bookListState.error = false;
         filterBooks();
@@ -211,27 +248,35 @@ export default {
       if (search.length > 0) {
         const keywordRegExps = search
           .split(/\s+/)
-          .map(word => new RegExp(word
-            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ui'));
+          .map(
+            (word) =>
+              new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ui")
+          );
         const list = [];
-        bookListState.originalList.forEach(book => {
+        bookListState.originalList.forEach((book) => {
           let score = 0;
           if (book.isbn === search) {
             score += 10;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.title))) {
+          if (keywordRegExps.some((regExp) => regExp.test(book.title))) {
             score += 1;
           }
-          if (keywordRegExps.some(regExp => book.subjects.some(subject => regExp.test(subject)))) {
+          if (
+            keywordRegExps.some((regExp) =>
+              book.subjects.some((subject) => regExp.test(subject))
+            )
+          ) {
             score += 0.9;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.author))) {
+          if (keywordRegExps.some((regExp) => regExp.test(book.author))) {
             score += 0.8;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.publisher))) {
+          if (keywordRegExps.some((regExp) => regExp.test(book.publisher))) {
             score += 0.7;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.parallelTitle))) {
+          if (
+            keywordRegExps.some((regExp) => regExp.test(book.parallelTitle))
+          ) {
             score += 0.6;
           }
           if (score > 0) {
@@ -243,7 +288,7 @@ export default {
         });
         list.sort((a, b) => b.score - a.score);
 
-        bookListState.list = list.map(item => item.book);
+        bookListState.list = list.map((item) => item.book);
       } else {
         bookListState.list = bookListState.originalList;
       }
@@ -279,21 +324,35 @@ export default {
 
     const showBorrow = () => {
       if (!store.getters.oidcIsAuthenticated) {
-        Toast('请先登录', {
+        Toast("请先登录", {
           overlay: true,
           forbidClick: true,
           duration: 0,
         });
-        setTimeout(() => store.dispatch('authenticateOidc'), 500);
+        setTimeout(() => store.dispatch("authenticateOidc"), 500);
         return;
       }
       showBorrowActionSheet.value = true;
       numBorrowBooks.value = null;
     };
 
-    const afterRead = async file => {
+     const showUserHistory = () => {
+      if (!store.getters.oidcIsAuthenticated) {
+        Toast("请先登录", {
+          overlay: true,
+          forbidClick: true,
+          duration: 0,
+        });
+        setTimeout(() => store.dispatch("authenticateOidc"), 500);
+        return;
+      }
+      router.push('/userhistory')
+  
+    };
+
+    const afterRead = async (file) => {
       Toast.loading({
-        message: '压缩中...',
+        message: "压缩中...",
         forbidClick: true,
         duration: 0,
       });
@@ -303,40 +362,40 @@ export default {
         useWebWorker: true,
       });
       Toast.loading({
-        message: '上传中...',
+        message: "上传中...",
         forbidClick: true,
         duration: 0,
       });
       const formData = new FormData();
-      formData.append('file', compressedFile);
+      formData.append("file", compressedFile);
       try {
-        const response = await axios.post('/api/barcode/image', formData, {
+        const response = await axios.post("/api/barcode/image", formData, {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
         });
         Toast.clear();
         if (response.data.data.length === numBorrowBooks.value) {
           await router.push({
-            path: '/borrow',
+            path: "/borrow",
             query: {
-              codes: response.data.data.join(','),
+              codes: response.data.data.join(","),
             },
           });
         } else if (response.data.data.length > 0) {
-          Toast.fail('识别到的条码数量与选择数量的不一致');
+          Toast.fail("识别到的条码数量与选择数量的不一致");
         } else {
-          Toast.fail('没有识别到有效的条码');
+          Toast.fail("没有识别到有效的条码");
         }
       } catch (e) {
         console.warn(e);
-        Toast.fail('识别失败，请重试');
+        Toast.fail("识别失败，请重试");
       }
     };
 
     const signOut = async () => {
-      await store.dispatch('signOutOidcSilent');
-      Toast('退出登录成功');
+      await store.dispatch("signOutOidcSilent");
+      Toast("退出登录成功");
     };
 
     return {
@@ -350,9 +409,10 @@ export default {
       search,
       oidcUser: computed(() => store.getters.oidcUser),
       oidcIsAuthenticated: computed(() => store.getters.oidcIsAuthenticated),
-      authenticateOidc: () => store.dispatch('authenticateOidc'),
+      authenticateOidc: () => store.dispatch("authenticateOidc"),
       showBorrow,
       afterRead,
+      showUserHistory,
       signOut,
     };
   },
@@ -368,14 +428,16 @@ export default {
   }
 }
 
-.page-header, .part-header {
+.page-header,
+.part-header {
   display: flex;
   align-items: center;
   flex-direction: row;
   justify-content: space-between;
   padding: 0 12px 0 24px;
 
-  h2, h3 {
+  h2,
+  h3 {
     margin: 0 16px 0 0;
     white-space: nowrap;
   }
