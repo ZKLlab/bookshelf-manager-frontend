@@ -2,7 +2,7 @@ module.exports = {
   devServer: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8089',
+        target: 'http://books.dev.cloud.shuosc.com',
         changeOrigin: true,
       },
     },

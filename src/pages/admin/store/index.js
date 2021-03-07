@@ -12,9 +12,12 @@ export default createStore({
     oidcStore: vuexOidcCreateStoreModule(oidcSettings, undefined, {
       userLoaded: user => {
         console.log('OIDC user is loaded:', user);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${user.access_token}`;
+        axios.defaults.headers.common.Authorization = `Bearer ${user.access_token}`;
       },
-      userUnloaded: () => console.log('OIDC user is unloaded'),
+      userUnloaded: () => {
+        console.log('OIDC user is unloaded');
+        delete axios.defaults.headers.common.Authorization;
+      },
       accessTokenExpiring: () => console.log('Access token will expire'),
       accessTokenExpired: () => console.log('Access token did expire'),
       silentRenewError: () => console.log('OIDC user is unloaded'),

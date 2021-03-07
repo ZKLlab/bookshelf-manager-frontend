@@ -5,5 +5,5 @@ export const oidcSettings = {
   silentRedirectUri: `${window.location.origin}/silent-signin-callback.html`,
   automaticSilentRenew: true,
   responseType: 'code',
-  scope: 'openid profile email',
+  scope: 'openid profile email offline_access',
 };
