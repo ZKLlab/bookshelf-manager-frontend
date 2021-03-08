@@ -105,7 +105,7 @@ export default {
 
     const initialCodes = ref(toRef(props, 'codes').value);
     const barcodeValue = ref('');
-    const showKeyboard = ref(false);
+    const showKeyboard = ref(initialCodes.value == null);
     const resultList = ref([]);
 
     const borrow = async codes => {
@@ -181,6 +181,9 @@ export default {
       nextTick(() => {
         barcodeValue.value = '';
       });
+      if (navigator.vibrate != null) {
+        navigator.vibrate(10);
+      }
     };
 
     const back = () => {
