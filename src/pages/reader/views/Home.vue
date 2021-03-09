@@ -73,7 +73,6 @@
         v-lazy="item"
         :book="item"
       />
-
       <div
         v-if="
           !bookListState.loading &&

@@ -4,6 +4,9 @@
     <van-tab name="b" title="待归还" />
     <van-tab name="c" title="已归还" />
   </van-tabs>
+  <div v-if="userHistoryState.loading" class="history-list-loading">
+    <van-loading size="24px">加载中...</van-loading>
+  </div>
   <div class="book-list">
     <lazy-component>
       <div v-if="activeName == 'a'">
@@ -36,7 +39,7 @@
 <script>
 import BookHistory from '@/pages/reader/components/BookHistory'
 import axios from 'axios'
-import { Button, Card, Tab, Tabs } from 'vant'
+import { Button, Card, Tab, Tabs, Loading } from 'vant'
 import { onMounted, reactive, ref } from 'vue'
 
 export default {
@@ -47,6 +50,7 @@ export default {
     [Tab.name]: Tab,
     [Tabs.name]: Tabs,
     [Button.name]: Button,
+    [Loading.name]: Loading,
   },
   setup() {
     const userHistoryState = reactive({
@@ -94,6 +98,7 @@ export default {
       userHistoryState.loading = true
       try {
         const response = await axios.get('/api/loans?mode=all')
+        userHistoryState.loading = true
         userHistoryState.originalList = response.data.data
         userHistoryState.error = false
         filterBooks()
@@ -127,9 +132,11 @@ h3 {
   padding: 12px 12px 0;
 }
 
-.book-list-loading {
+.history-list-loading {
   padding: 16px 0 32px;
+  font-weight: 10px;
   text-align: center;
+  color: grey;
 }
 
 .book-list-finish {

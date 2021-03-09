@@ -10,22 +10,27 @@
         <h3 class="van-ellipsis">
           {{ loan.holding.book.title }}
         </h3>
-        <h4
-          v-if="loan.holding.book.parallelTitle.length > 0"
-          class="van-ellipsis"
-        >
-          {{ loan.holding.book.parallelTitle }}
-        </h4>
+
         <p class="van-ellipsis">
           {{ loan.holding.book.author }}
         </p>
-        <p v-if="loan.lendTime" class="van-ellipsis">
-          借出时间:{{ loan.lendTime }}
-        </p>
-        <p v-if="loan.returnTime" class="van-ellipsis">
-          归还时间:{{ loan.returnTime }}
-        </p>
-        <p v-else class="van-ellipsis">到期时间:{{ loan.dueTime }}</p>
+        <div v-if="loan.lendTime" class="loan-info">
+          <strong>图书状态:</strong>
+          {{ loan.holding.state }}
+        </div>
+
+        <div v-if="loan.lendTime" class="loan-info">
+          <strong>借出时间:</strong>
+          {{ loan.lendTime }}
+        </div>
+        <div v-if="loan.returnTime" class="loan-info">
+          <strong>归还时间:</strong>
+          {{ loan.returnTime }}
+        </div>
+        <div v-else class="loan-info">
+          <strong>到期时间:</strong>
+          {{ loan.dueTime }}
+        </div>
       </div>
     </div>
   </van-button>
@@ -60,6 +65,7 @@ export default {
   text-align: left;
 
   // noinspection CssInvalidPseudoSelector
+
   & :deep(.van-button__content) {
     display: block;
   }
@@ -72,6 +78,18 @@ export default {
   justify-content: space-between;
   padding: 16px 24px 16px 16px;
   background: white;
+}
+
+.loan-info {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+  color: #000;
+}
+
+.highlight-text {
+  font-weight: bold;
+  color: #1989fa;
 }
 
 .book-card__image {
