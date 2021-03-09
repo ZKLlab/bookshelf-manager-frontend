@@ -1,5 +1,5 @@
 <template>
-  <van-button block class="book-card-button" :url="`/bookinfo/${book.id}`">
+  <van-button :to="`/books/${book.id}`" block class="book-card-button">
     <div class="book-card">
       <img
         :alt="book.title"
@@ -26,7 +26,8 @@
 </template>
 
 <script>
-import { Button } from 'vant'
+import { Button } from 'vant';
+
 
 export default {
   name: 'BookCard',
@@ -39,7 +40,7 @@ export default {
   components: {
     [Button.name]: Button,
   },
-}
+};
 </script>
 
 <style lang="scss" scoped>
@@ -48,6 +49,7 @@ export default {
   margin-bottom: 12px;
   padding: 0;
   text-align: left;
+
   // noinspection CssInvalidPseudoSelector
   & :deep(.van-button__content) {
     display: block;
