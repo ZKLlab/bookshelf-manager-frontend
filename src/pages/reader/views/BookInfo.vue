@@ -1,41 +1,104 @@
 <template>
   <template v-if="book != null">
-    <div class="book-card">
-      <div class="book-card__side">
-        <img
-          :alt="book.title"
-          :src="`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/${book.isbn}.jpg`"
-          class="book-card__image"
-        />
-      </div>
-      <div class="book-card__content">
-        <div class="book-title">{{ book.title }}</div>
-        <div class="book-subtitle">{{ book.seriesTitle }}</div>
-        <div class="book-author">
-          {{ book.author }}/{{ book.publisher }}
-        </div>
-        <div v-if="book.holdings">
-          <div v-for="holding in book.holdings" v-bind:key="holding.id">
-          <span class="book-position">
-            {{ holding.place }}
-            -
-            {{ holding.shelf }}架 - {{ holding.row }}行
-          </span>
-            <span class="highlight-text">[{{ bookState[holding.state] }}]</span>
+    <van-cell-group>
+      <van-cell>
+        <div class="book-card">
+          <div class="book-card__side">
+            <img
+              :alt="book.title"
+              :src="`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/${book.isbn}.jpg`"
+              class="book-card__image"
+              @click="showCover"
+            />
+          </div>
+          <div class="book-card__content">
+            <h3 class="book-title">{{ book.title }}</h3>
+            <h4 class="book-parallel-title">{{ book.parallelTitle }}</h4>
+            <p class="book-info">{{ book.author }}</p>
+            <p class="book-info">{{ book.publisher }} / {{ book.publicationDate.join('.') }}</p>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="book-summary">
-      <p><strong style="font-size: 16px;">简介</strong></p>
-      <p>{{ book.summary }}</p>
+      </van-cell>
+    </van-cell-group>
+
+    <van-cell-group title="图书简介">
+      <van-cell class="book-summary">
+        <div class="book-summary-paragraphs">
+          <p v-for="(line, i) in book.summary.split('\n')" v-bind:key="i">{{ line }}</p>
+        </div>
+      </van-cell>
+    </van-cell-group>
+
+    <van-cell-group title="藏书列表">
+      <van-cell
+        v-for="item in book.holdings"
+        v-bind:key="item.id"
+        :label="`位置：${item.place} / ${item.shelf}排 / ${item.row}行`"
+        :title="`索书号：${item.callNumber}`"
+      >
+        <div>条码号：{{ item.barcode }}</div>
+        <div>状态：{{ bookState[item.state] }}</div>
+      </van-cell>
+      <van-cell v-if="book.holdings.length === 0">
+        这本书目前暂无藏书。
+      </van-cell>
+    </van-cell-group>
+
+    <van-cell-group title="其他信息">
+      <van-cell v-if="book.seriesTitle.length > 0" title="丛书名">
+        <template #extra>
+          {{ book.seriesTitle }}
+        </template>
+      </van-cell>
+      <van-cell v-if="book.subjects.length > 0" title="主题词">
+        <template #extra>
+          {{ book.subjects.join(' - ') }}
+        </template>
+      </van-cell>
+      <van-cell title="中图分类号">
+        <template #extra>
+          {{ book.clcClassification }}
+        </template>
+      </van-cell>
+      <van-cell title="ISBN">
+        <template #extra>
+          {{ book.isbn }}
+        </template>
+      </van-cell>
+      <van-cell title="语言代码">
+        <template #extra>
+          {{ book.language }}
+        </template>
+      </van-cell>
+      <van-cell title="页数">
+        <template #extra>
+          {{ book.pages }}
+        </template>
+      </van-cell>
+      <van-cell title="价格">
+        <template #extra>
+          {{ (book.price / 100).toFixed(2) }}
+        </template>
+      </van-cell>
+      <van-cell
+        v-if="book.doubanId != null"
+        :url="`https://book.douban.com/subject/${book.doubanId}/`"
+        is-link
+        title="豆瓣链接"
+      >
+        ID: {{ book.doubanId }}
+      </van-cell>
+    </van-cell-group>
+
+    <div class="btn-back-wrapper">
+      <van-button @click="back">返回</van-button>
     </div>
   </template>
 </template>
 
 <script>
 import axios from 'axios';
-import { Divider, Image, Tag, Toast } from 'vant';
+import { Button, Cell, CellGroup, ImagePreview, Toast } from 'vant';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -43,9 +106,9 @@ import { useRoute, useRouter } from 'vue-router';
 export default {
   name: 'Home',
   components: {
-    [Image.name]: Image,
-    [Tag.name]: Tag,
-    [Divider.name]: Divider,
+    [Button.name]: Button,
+    [Cell.name]: Cell,
+    [CellGroup.name]: CellGroup,
   },
   setup() {
     const route = useRoute();
@@ -87,10 +150,20 @@ export default {
           forbidClick: true,
         });
       }
-      setTimeout(() => {
+      setTimeout(async () => {
         Toast.clear();
-        router.go(-1);
+        await back();
       }, 800);
+    };
+
+    const showCover = () => {
+      if (book.value != null) {
+        ImagePreview([`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/${book.value.isbn}.jpg`]);
+      }
+    };
+
+    const back = async () => {
+      await router.go(-1);
     };
 
     onMounted(async () => {
@@ -100,6 +173,8 @@ export default {
     return {
       book,
       bookState,
+      showCover,
+      back,
     };
   },
 };
@@ -111,17 +186,13 @@ export default {
   align-items: flex-start;
   flex-direction: row;
   justify-content: space-between;
-  margin: 15px 15px 15px 15px;
-  //   padding: 16px 24px 16px 16px;
-  border: 1px solid white;
-  border-radius: 5px;
-  background: white;
+  padding: 12px 4px;
 
   .book-card__content {
     line-height: 1.3;
     flex: 1 1;
     min-width: 0;
-    padding: 0 0 2px 18px;
+    padding: 0 0 0 16px;
 
     .book-position {
       line-height: 1.5;
@@ -130,22 +201,18 @@ export default {
 
     .book-title {
       font-size: 20px;
-      font-weight: bold;
-      line-height: 30px;
-      height: 30px;
-      padding-top: 16px;
+      margin: 0 0 4px;
     }
 
-    .book-subtitle {
-      font-size: 17px;
-      line-height: 1.5;
-      color: #969799;
+    .book-parallel-title {
+      font-size: 15px;
+      margin: 0 0 4px;
     }
 
-    .book-author {
-      font-size: 16px;
+    .book-info {
+      font-size: 14px;
       line-height: 1.5;
-      margin: 2px 0 6px;
+      margin: 2px 0 0;
       color: #969799;
     }
 
@@ -161,22 +228,35 @@ export default {
 }
 
 .book-card__side {
-  flex: 0 0 160px;
-  width: 160px;
+  flex: 0 0 84px;
+  width: 84px;
 
   .book-card__image {
-    width: 80%;
-    padding: 16px 0 16px 16px;
+    width: 100%;
   }
 }
 
 .book-summary {
-  padding: 10px 16px 10px 16px;
-
-  .p {
-    font-size: 16px;
-    line-height: 1.2;
-    margin: 4px 0 0;
+  .book-summary-paragraphs {
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 115px;
   }
+
+  p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    text-indent: 2em;
+
+    &:not(:first-child) {
+      margin-top: 0.5em;
+    }
+  }
+}
+
+.btn-back-wrapper {
+  padding: 24px 16px 48px;
+  text-align: center;
 }
 </style>
