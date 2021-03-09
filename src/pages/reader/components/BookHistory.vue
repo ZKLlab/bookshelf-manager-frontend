@@ -1,24 +1,22 @@
 <template>
   <van-button :disabled="disabled" block class="book-card-button">
+    <!-- {{ loan.holding.book.title }} -->
     <div class="book-card">
       <img
-        :alt="book.title"
-        :src="`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/${book.isbn}.jpg`"
+        :alt="loan.holding.book.title"
+        :src="`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/${loan.holding.book.isbn}.jpg`"
         class="book-card__image"
       />
+      <!-- {{ loan.holding.book.title }} -->
       <div class="book-card__content">
         <h3 class="van-multi-ellipsis--l2">
-          {{ book.title }}
+          {{ loan.holding.book.id }}
         </h3>
         <h4 v-if="book.parallelTitle.length > 0" class="van-multi-ellipsis--l2">
-          {{ book.parallelTitle }}
+          {{ loan.holding.book.id }}
         </h4>
         <p class="van-multi-ellipsis--l2">
-          {{ book.author }}
-          /
-          {{ book.publisher }}
-          /
-          {{ book.publicationDate.join('.') }}
+          {{ loan.holding.book.id }}
         </p>
       </div>
     </div>
@@ -29,9 +27,9 @@
 import { Button } from 'vant'
 
 export default {
-  name: 'BookCard',
+  name: 'BookHistory',
   props: {
-    book: {
+    loan: {
       type: Object,
       required: true,
     },
@@ -52,7 +50,6 @@ export default {
   margin-bottom: 12px;
   padding: 0;
   text-align: left;
-  // noinspection CssInvalidPseudoSelector
   & :deep(.van-button__content) {
     display: block;
   }
@@ -63,7 +60,7 @@ export default {
   align-items: flex-start;
   flex-direction: row;
   justify-content: space-between;
-  padding: 16px 24px 16px 16px;
+  //   padding: 16px 24px 16px 16px;
   background: white;
 }
 
