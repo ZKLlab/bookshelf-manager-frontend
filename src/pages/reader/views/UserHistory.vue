@@ -1,26 +1,45 @@
 <template>
-  <van-tabs v-model="activeName">
+  <van-tabs v-model:active="activeName">
     <van-tab name="a" title="全部" />
     <van-tab name="b" title="待归还" />
     <van-tab name="c" title="已归还" />
   </van-tabs>
-  {{ activeName }}
-
+  <div v-if="userHistoryState.loading" class="history-list-loading">
+    <van-loading size="24px">加载中...</van-loading>
+  </div>
   <div class="book-list">
     <lazy-component>
-      <BookHistory
-        v-for="item in userHistoryState.list"
-        :key="item.id"
-        v-lazy="item"
-        :loan="item"
-      />
+      <div v-if="activeName == 'a'">
+        <BookHistory
+          v-for="item in userHistoryState.lista"
+          :key="item.id"
+          v-lazy="item"
+          :loan="item"
+        />
+      </div>
+      <div v-if="activeName == 'b'">
+        <BookHistory
+          v-for="item in userHistoryState.listb"
+          :key="item.id"
+          v-lazy="item"
+          :loan="item"
+        />
+      </div>
+      <div v-if="activeName == 'c'">
+        <BookHistory
+          v-for="item in userHistoryState.listc"
+          :key="item.id"
+          v-lazy="item"
+          :loan="item"
+        />
+      </div>
     </lazy-component>
   </div>
 </template>
 <script>
 import BookHistory from '@/pages/reader/components/BookHistory'
 import axios from 'axios'
-import { Button, Card, Tab, Tabs } from 'vant'
+import { Button, Card, Tab, Tabs, Loading } from 'vant'
 import { onMounted, reactive, ref } from 'vue'
 
 export default {
@@ -31,13 +50,16 @@ export default {
     [Tab.name]: Tab,
     [Tabs.name]: Tabs,
     [Button.name]: Button,
+    [Loading.name]: Loading,
   },
   setup() {
     const userHistoryState = reactive({
       loading: false,
       finish: false,
       error: false,
-      list: [],
+      lista: [],
+      listb: [],
+      listc: [],
       originalList: [],
     })
 
@@ -45,17 +67,38 @@ export default {
     const filterBooks = () => {
       //   const search = searchValue.value.trim()
       const search = activeName.value
-
       if (search == 'a') {
-        userHistoryState.list = userHistoryState.originalList
+        userHistoryState.lista = userHistoryState.originalList
+        userHistoryState.originalList.forEach((loan) => {
+          if (loan.returnTime != null) {
+            userHistoryState.listb.push(loan)
+          } else {
+            userHistoryState.listc.push(loan)
+          }
+        })
+      } else if (search == 'b') {
+        //待归还
+        userHistoryState.listb = []
+        userHistoryState.originalList.forEach((loan) => {
+          if (loan.returnTime != null) {
+            userHistoryState.list.push(loan)
+          }
+        })
       } else {
-        userHistoryState.list = []
+        //已归还
+        userHistoryState.listc = []
+        userHistoryState.originalList.forEach((loan) => {
+          if (loan.returnTime == null) {
+            userHistoryState.list.push(loan)
+          }
+        })
       }
     }
     const getUserHistory = async () => {
       userHistoryState.loading = true
       try {
         const response = await axios.get('/api/loans?mode=all')
+        userHistoryState.loading = true
         userHistoryState.originalList = response.data.data
         userHistoryState.error = false
         filterBooks()
@@ -89,9 +132,11 @@ h3 {
   padding: 12px 12px 0;
 }
 
-.book-list-loading {
+.history-list-loading {
   padding: 16px 0 32px;
+  font-weight: 10px;
   text-align: center;
+  color: grey;
 }
 
 .book-list-finish {

@@ -21,12 +21,12 @@ const routes = [
     path: '/borrow',
     name: 'Borrow',
     component: Borrow,
-    props: route => ({
+    props: (route) => ({
       codes: route.query.codes?.split(','),
     }),
   },
   {
-    path: '/bookinfo',
+    path: '/books/:id',
     name: 'BookInfo',
     component: BookInfo,
     meta: {

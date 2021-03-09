@@ -1,57 +1,41 @@
 <template>
-  <div class="container">
-    <div class="container2">
-      <Nav color="#282c34" title="书籍详情" />
-      <div class="bookinfo-container">
-        <div class="info-container">
-          <div class="image-container">
-            <van-image
-              width="100%"
-              height="100%"
-              fit="contain"
-              :src="`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/${book.isbn}.jpg`"
-            />
-          </div>
-          <div class="text-container">
-            <div class="book-title">{{ bookInfo.list.title }}</div>
-            <div class="book-subtitle">[{{ bookInfo.list.seriesTitle }}]</div>
-            <div class="book-info">
-              <div class="book-info-items">
-                <div>
-                  {{ bookInfo.list.author }}/{{ bookInfo.list.publisher }}
-                </div>
-                <div>ISBN:{{ bookInfo.list.isbn }}</div>
-                <div
-                  class="book-pos"
-                  v-for="pos in bookInfo.list.holdings"
-                  v-bind:key="pos"
-                >
-                  <van-tag color="#ffe1e1" text-color="#ad0000" size="large">
-                    <div>
-                      位置:{{ pos.place }}/{{ pos.shelf }}号架/{{
-                        pos.row
-                      }}行/索书号:{{ pos.callNumber }} /条码号:{{ pos.barcode }}
-                    </div>
-                  </van-tag>
-                </div>
-              </div>
-            </div>
-          </div>
+  <div class="book-card">
+    <div class="book-card__side">
+      <img
+        :alt="bookInfo.list.title"
+        :src="`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/${book.isbn}.jpg`"
+        class="book-card__image"
+      />
+    </div>
+    <div class="book-card__content">
+      <div class="book-title">{{ bookInfo.list.title }}</div>
+      <div class="book-subtitle">{{ bookInfo.list.seriesTitle }}</div>
+      <div class="book-author">
+        {{ bookInfo.list.author }}/{{ bookInfo.list.publisher }}
+      </div>
+      <div v-if="bookInfo.list.holdings">
+        <div v-for="holding in bookInfo.list.holdings" :key="holding.id">
+          <span class="book-position">
+            {{ holding.place }}
+            -
+            {{ holding.shelf }}架 - {{ holding.row }}行
+          </span>
+          <span class="highlight-text">[{{ bookState[holding.state] }}]</span>
         </div>
       </div>
     </div>
-    <div class="book-summary">
-      <div class="book-summary-title">简介</div>
-      <!-- {{ book.summary }} -->
-      {{ bookInfo.list.summary }}
-    </div>
+  </div>
+  {{ route }}
+  <div class="book-summary">
+    <p><strong style="font-size: 16px;">简介</strong></p>
+    <p>{{ book.summary }}</p>
   </div>
 </template>
 
 <script>
-import Nav from '../components/Nav.vue'
 import { onMounted, onUnmounted, reactive } from 'vue'
 import axios from 'axios'
+// import useRoute from 'vue-router'
 import { Image, Divider } from 'vant'
 import { Tag } from 'vant'
 
@@ -109,24 +93,32 @@ export default {
     }
   },
   components: {
-    Nav,
     [Image.name]: Image,
     [Tag.name]: Tag,
     [Divider.name]: Divider,
   },
   setup() {
     let throttleTimer = null
+    const id = '603f9a80fad1d349121991bc'
+    const bookState = {
+      Lending: '归还',
+      Lent: '借出',
+      Reference: '参考',
+    }
+    // const route = useRoute()
+    // console.log(route.params.id)
     const bookInfo = reactive({
       loading: false,
       finish: false,
       error: false,
       list: [],
+      book: [],
     })
     // let throttleTail = false
     const getBookInfo = async () => {
       bookInfo.loading = true
       try {
-        const response = await axios.get(`/api/books/603f9a80fad1d349121991bc`)
+        const response = await axios.get(`/api/books/${id}`)
         bookInfo.list = response.data.data
         bookInfo.error = false
       } catch (e) {
@@ -149,82 +141,83 @@ export default {
     return {
       getBookInfo,
       bookInfo,
+      bookState,
+      //   route,
     }
   },
 }
 </script>
 
-<style scoped>
-.container2 {
-  width: auto;
-  margin-top: 10px;
-}
-
-.info-container {
+<style lang="scss" scoped>
+.book-card {
   display: flex;
   align-items: flex-start;
   flex-direction: row;
   justify-content: space-between;
+  margin: 15px 15px 15px 15px;
+  //   padding: 16px 24px 16px 16px;
   background: white;
-  margin: 0px 5px 5px 5px;
-  border: 1px solid whitesmoke;
+  border-radius: 5px;
+  border: 1px solid white;
+
+  .book-card__content {
+    line-height: 1.3;
+    flex: 1 1;
+    min-width: 0;
+    padding: 0 0 2px 18px;
+
+    .book-position {
+      line-height: 1.5;
+      background-color: lightgrey;
+    }
+
+    .book-title {
+      padding-top: 16px;
+      font-size: 20px;
+      font-weight: bold;
+      line-height: 30px;
+      height: 30px;
+    }
+    .book-subtitle {
+      font-size: 17px;
+      line-height: 1.5;
+      color: #969799;
+    }
+
+    .book-author {
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 2px 0 6px;
+      color: #969799;
+    }
+
+    .highlight-text {
+      font-weight: bold;
+      color: #1989fa;
+    }
+
+    .action-button {
+      font-size: 13px;
+    }
+  }
 }
 
-.image-container {
-  width: 150px;
-  display: block;
-  flex: 0 0 150px;
-  margin-top: 22px;
-  margin-left: 5%;
-  margin-right: 5%;
-}
-
-.text-container {
-  margin-top: 22px;
-  line-height: 1.3;
-  flex: 1 1;
-  min-width: 0;
-  padding: 0 0 2px 18px;
-}
-
-.book-title {
-  font-weight: bold;
-  font-size: 22px;
-  height: 22px;
-  line-height: 22px;
-}
-
-.book-subtitle {
-  margin-top: 2%;
-  font-size: 18px;
-}
-
-.book-pos {
-  width: auto;
-  margin-top: 3%;
-  margin-bottom: 1%;
-}
-
-.book-info-items {
-  text-align: left;
-  color: grey;
-  line-height: 25px;
-  width: 80%;
-  margin-top: 2%;
+.book-card__side {
+  flex: 0 0 160px;
+  width: 160px;
+  .book-card__image {
+    width: 80%;
+    padding: 16px 0 16px 16px;
+  }
 }
 
 .book-summary {
-  text-align: left;
-  line-height: 1.6;
-  padding: 0;
-  margin-left: 5%;
-  margin-right: 5%;
-}
+  padding: 10px 16px 10px 16px;
 
-.book-summary-title {
-  font-size: 18px;
-  margin-bottom: 5px;
-  font-weight: bold;
-  margin-top: 22px;
+  .p {
+    font-size: 16px;
+    line-height: 1.2;
+    margin: 4px 0 0;
+  }
 }
 </style>
