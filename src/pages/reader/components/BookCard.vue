@@ -1,5 +1,5 @@
 <template>
-  <van-button :disabled="disabled" block class="book-card-button">
+  <van-button block class="book-card-button">
     <div class="book-card">
       <img
         :alt="book.title"
@@ -34,10 +34,6 @@ export default {
     book: {
       type: Object,
       required: true,
-    },
-    disabled: {
-      type: Boolean,
-      default: false,
     },
   },
   components: {
