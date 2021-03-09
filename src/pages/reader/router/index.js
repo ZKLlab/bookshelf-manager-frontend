@@ -3,9 +3,9 @@ import { vuexOidcCreateRouterMiddleware } from 'vuex-oidc';
 import store from '../store';
 import BookInfo from '../views/BookInfo.vue';
 import Borrow from '../views/Borrow.vue';
+import HistoryLoans from '../views/HistoryLoans.vue';
 import Home from '../views/Home.vue';
 import Return from '../views/Return.vue';
-import UserHistory from '../views/UserHistory.vue';
 
 
 const routes = [
@@ -34,17 +34,17 @@ const routes = [
     },
   },
   {
-    path: '/userhistory',
-    name: 'UserHistory',
-    component: UserHistory,
-  },
-  {
     path: '/return/:id',
     name: 'Return',
     component: Return,
     props: route => ({
       id: route.params.id,
     }),
+  },
+  {
+    path: '/history',
+    name: 'HistoryLoans',
+    component: HistoryLoans,
   },
 ];
 

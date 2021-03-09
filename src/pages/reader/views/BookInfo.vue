@@ -1,151 +1,108 @@
 <template>
-  <div class="book-card">
-    <div class="book-card__side">
-      <img
-        :alt="bookInfo.list.title"
-        :src="`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/${book.isbn}.jpg`"
-        class="book-card__image"
-      />
-    </div>
-    <div class="book-card__content">
-      <div class="book-title">{{ bookInfo.list.title }}</div>
-      <div class="book-subtitle">{{ bookInfo.list.seriesTitle }}</div>
-      <div class="book-author">
-        {{ bookInfo.list.author }}/{{ bookInfo.list.publisher }}
+  <template v-if="book != null">
+    <div class="book-card">
+      <div class="book-card__side">
+        <img
+          :alt="book.title"
+          :src="`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/${book.isbn}.jpg`"
+          class="book-card__image"
+        />
       </div>
-      <div v-if="bookInfo.list.holdings">
-        <div v-for="holding in bookInfo.list.holdings" :key="holding.id">
+      <div class="book-card__content">
+        <div class="book-title">{{ book.title }}</div>
+        <div class="book-subtitle">{{ book.seriesTitle }}</div>
+        <div class="book-author">
+          {{ book.author }}/{{ book.publisher }}
+        </div>
+        <div v-if="book.holdings">
+          <div v-for="holding in book.holdings" v-bind:key="holding.id">
           <span class="book-position">
             {{ holding.place }}
             -
             {{ holding.shelf }}架 - {{ holding.row }}行
           </span>
-          <span class="highlight-text">[{{ bookState[holding.state] }}]</span>
+            <span class="highlight-text">[{{ bookState[holding.state] }}]</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  {{ route }}
-  <div class="book-summary">
-    <p><strong style="font-size: 16px;">简介</strong></p>
-    <p>{{ book.summary }}</p>
-  </div>
+    <div class="book-summary">
+      <p><strong style="font-size: 16px;">简介</strong></p>
+      <p>{{ book.summary }}</p>
+    </div>
+  </template>
 </template>
 
 <script>
-import { onMounted, onUnmounted, reactive } from 'vue'
-import axios from 'axios'
-// import useRoute from 'vue-router'
-import { Image, Divider } from 'vant'
-import { Tag } from 'vant'
+import axios from 'axios';
+import { Divider, Image, Tag, Toast } from 'vant';
+import { onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+
 
 export default {
   name: 'Home',
-  data() {
-    return {
-      book: {
-        id: '603f9a80fad1d349121991bc',
-        title: '软件工程导论',
-        parallelTitle: '',
-        author: '张海藩，牟永敏编著',
-        seriesTitle: '21世纪软件工程专业规划教材',
-        summary:
-          '本书全面系统地讲述了软件工程的概念、原理和典型的方法学，并介绍了软件项目的管理技术。本书正文共13章，第1章是概述，第2章至第8章顺序讲述软件生命周期各阶段的任务、过程、结构化方法和工具，第9章至第12章分别讲述面向对象方法学引论、面向对象分析、面向对象设计和面向对象实现，第13章介绍软件项目管理。本书可作为高等院校软件工程课程的教材，也可供从事软件相关工作的技术人员阅读参考。',
-        publisher: '清华大学出版社',
-        subjects: ['软件工程'],
-        publicationDate: [2013, 8],
-        clcClassification: 'TP311',
-        isbn: '9787302330981',
-        language: 'chi',
-        pages: 345,
-        price: 3950,
-        doubanId: null,
-        holdings: [
-          {
-            id: '603f9c9ffad1d349121991bd',
-            barcode: '6824191',
-            place: '东区计511',
-            shelf: 1,
-            row: 1,
-            callNumber: 'TP311.5/1234-9',
-            state: 'Lending',
-          },
-          {
-            id: '603f9c9ffad1d349121991bd',
-            barcode: '6824191',
-            place: '东区计511',
-            shelf: 1,
-            row: 1,
-            callNumber: 'TP311.5/1234-9',
-            state: 'Lending',
-          },
-          {
-            id: '603f9c9ffad1d349121991bd',
-            barcode: '6824191',
-            place: '东区计511',
-            shelf: 1,
-            row: 1,
-            callNumber: 'TP311.5/1234-9',
-            state: 'Lending',
-          },
-        ],
-      },
-    }
-  },
   components: {
     [Image.name]: Image,
     [Tag.name]: Tag,
     [Divider.name]: Divider,
   },
   setup() {
-    let throttleTimer = null
-    const id = '603f9a80fad1d349121991bc'
+    const route = useRoute();
+    const router = useRouter();
+
+    const { id } = route.params;
     const bookState = {
       Lending: '归还',
-      Lent: '借出',
+      Lent: '已借出',
       Reference: '参考',
-    }
-    // const route = useRoute()
-    // console.log(route.params.id)
-    const bookInfo = reactive({
-      loading: false,
-      finish: false,
-      error: false,
-      list: [],
-      book: [],
-    })
-    // let throttleTail = false
-    const getBookInfo = async () => {
-      bookInfo.loading = true
+      Closed: '闭架',
+    };
+    const book = ref(null);
+
+    const fetchBookInfo = async () => {
+      Toast.loading({
+        message: '加载中...',
+        duration: 0,
+        forbidClick: true,
+      });
       try {
-        const response = await axios.get(`/api/books/${id}`)
-        bookInfo.list = response.data.data
-        bookInfo.error = false
+        const response = await axios.get(`/api/books/${id}`);
+        if (response.data.code === 200) {
+          Toast.clear();
+          book.value = response.data.data;
+          return;
+        } else {
+          Toast.fail({
+            message: response.data.msg,
+            duration: 0,
+            forbidClick: true,
+          });
+        }
       } catch (e) {
-        bookInfo.error = true
-      } finally {
-        bookInfo.loading = false
+        console.warn(e);
+        Toast.fail({
+          message: '加载失败',
+          duration: 0,
+          forbidClick: true,
+        });
       }
-    }
+      setTimeout(() => {
+        Toast.clear();
+        router.go(-1);
+      }, 800);
+    };
 
     onMounted(async () => {
-      await getBookInfo()
-    })
-
-    onUnmounted(() => {
-      if (throttleTimer != null) {
-        clearTimeout(throttleTimer)
-      }
-    })
+      await fetchBookInfo();
+    });
 
     return {
-      getBookInfo,
-      bookInfo,
+      book,
       bookState,
-      //   route,
-    }
+    };
   },
-}
+};
 </script>
 
 <style lang="scss" scoped>
@@ -156,9 +113,9 @@ export default {
   justify-content: space-between;
   margin: 15px 15px 15px 15px;
   //   padding: 16px 24px 16px 16px;
-  background: white;
-  border-radius: 5px;
   border: 1px solid white;
+  border-radius: 5px;
+  background: white;
 
   .book-card__content {
     line-height: 1.3;
@@ -172,12 +129,13 @@ export default {
     }
 
     .book-title {
-      padding-top: 16px;
       font-size: 20px;
       font-weight: bold;
       line-height: 30px;
       height: 30px;
+      padding-top: 16px;
     }
+
     .book-subtitle {
       font-size: 17px;
       line-height: 1.5;
@@ -205,6 +163,7 @@ export default {
 .book-card__side {
   flex: 0 0 160px;
   width: 160px;
+
   .book-card__image {
     width: 80%;
     padding: 16px 0 16px 16px;

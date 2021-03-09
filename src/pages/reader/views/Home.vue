@@ -42,7 +42,7 @@
         />
       </van-col>
     </van-row>
-    <van-button block class="btn-loans" icon="clock-o" @click="showUserHistory">
+    <van-button block class="btn-loans" icon="clock-o" @click="showHistoryLoans">
       我的历史借阅
     </van-button>
   </div>
@@ -215,7 +215,7 @@
     <div class="loan-action-sheet-wrapper">
       <LoanCard
         v-for="item in loansList"
-        :key="item.id"
+        v-bind:key="item.id"
         :loan="item"
         :to="`/return/${encodeURIComponent(item.id)}`"
       />
@@ -390,7 +390,7 @@ export default {
       }
     };
 
-    const showUserHistory = () => {
+    const showHistoryLoans = () => {
       if (!store.getters.oidcIsAuthenticated) {
         Toast('请先登录', {
           overlay: true,
@@ -400,7 +400,7 @@ export default {
         setTimeout(() => store.dispatch('authenticateOidc'), 500);
         return;
       }
-      router.push('/userhistory');
+      router.push('/history');
     };
 
     const afterRead = async (file) => {
@@ -567,7 +567,7 @@ export default {
       showRenew,
       showReturn,
       renewLoan,
-      showUserHistory,
+      showHistoryLoans,
       signOut,
     };
   },

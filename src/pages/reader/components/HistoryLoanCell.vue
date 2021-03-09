@@ -1,6 +1,6 @@
 <template>
-  <van-button :disabled="disabled" block class="book-card-button">
-    <div class="book-card">
+  <van-cell>
+    <div class="loan-card">
       <img
         :alt="loan.holding.book.title"
         :src="`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/${loan.holding.book.isbn}.jpg`"
@@ -14,77 +14,49 @@
         <p class="van-ellipsis">
           {{ loan.holding.book.author }}
         </p>
-        <div v-if="loan.lendTime" class="loan-info">
-          <strong>图书状态:</strong>
-          {{ loan.holding.state }}
-        </div>
 
-        <div v-if="loan.lendTime" class="loan-info">
+        <div class="loan-info">
           <strong>借出时间:</strong>
-          {{ loan.lendTime }}
+          {{ new Date(loan.lendTime).toLocaleString() }}
         </div>
         <div v-if="loan.returnTime" class="loan-info">
           <strong>归还时间:</strong>
-          {{ loan.returnTime }}
+          {{ new Date(loan.returnTime).toLocaleString() }}
         </div>
-        <div v-else class="loan-info">
-          <strong>到期时间:</strong>
-          {{ loan.dueTime }}
+        <div v-else class="loan-info due-time">
+          <strong>应还时间:</strong>
+          {{ new Date(loan.dueTime).toLocaleString() }}
         </div>
       </div>
     </div>
-  </van-button>
+  </van-cell>
 </template>
 
 <script>
-import { Button } from 'vant'
+import { Cell } from 'vant';
+
 
 export default {
-  name: 'BookHistory',
+  name: 'HistoryLoanCell',
   props: {
     loan: {
       type: Object,
       required: true,
     },
-    disabled: {
-      type: Boolean,
-      default: false,
-    },
   },
   components: {
-    [Button.name]: Button,
+    [Cell.name]: Cell,
   },
-}
+};
 </script>
 
 <style lang="scss" scoped>
-.book-card-button {
-  height: auto;
-  margin-bottom: 12px;
-  padding: 0;
-  text-align: left;
-
-  // noinspection CssInvalidPseudoSelector
-
-  & :deep(.van-button__content) {
-    display: block;
-  }
-}
-
-.book-card {
+.loan-card {
   display: flex;
   align-items: flex-start;
   flex-direction: row;
   justify-content: space-between;
-  padding: 16px 24px 16px 16px;
   background: white;
-}
-
-.loan-info {
-  font-size: 13px;
-  line-height: 1.5;
-  margin: 4px 0 0;
-  color: #000;
 }
 
 .highlight-text {
@@ -94,8 +66,8 @@ export default {
 
 .book-card__image {
   display: block;
-  flex: 0 0 72px;
-  width: 72px;
+  flex: 0 0 64px;
+  width: 64px;
 }
 
 .book-card__content {
@@ -109,17 +81,22 @@ export default {
     margin: 0;
   }
 
-  h4 {
+  p {
     font-size: 13px;
-    font-weight: 400;
-    margin: 4px 0 0;
+    line-height: 1.5;
+    margin: 3px 0;
+    color: #969799;
   }
 
-  p {
-    font-size: 12px;
+  .loan-info {
+    font-size: 13px;
     line-height: 1.5;
-    margin: 6px 0 0;
-    color: #969799;
+    margin: 4px 0 0;
+    color: #000000;
+  }
+
+  .due-time {
+    color: #ed6a0c;
   }
 }
 </style>
