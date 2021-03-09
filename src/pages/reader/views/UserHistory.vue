@@ -1,19 +1,35 @@
 <template>
-  <van-tabs v-model="activeName">
+  <van-tabs v-model:active="activeName">
     <van-tab name="a" title="全部" />
     <van-tab name="b" title="待归还" />
     <van-tab name="c" title="已归还" />
   </van-tabs>
-  {{ activeName }}
-
   <div class="book-list">
     <lazy-component>
-      <BookHistory
-        v-for="item in userHistoryState.list"
-        :key="item.id"
-        v-lazy="item"
-        :loan="item"
-      />
+      <div v-if="activeName == 'a'">
+        <BookHistory
+          v-for="item in userHistoryState.lista"
+          :key="item.id"
+          v-lazy="item"
+          :loan="item"
+        />
+      </div>
+      <div v-if="activeName == 'b'">
+        <BookHistory
+          v-for="item in userHistoryState.listb"
+          :key="item.id"
+          v-lazy="item"
+          :loan="item"
+        />
+      </div>
+      <div v-if="activeName == 'c'">
+        <BookHistory
+          v-for="item in userHistoryState.listc"
+          :key="item.id"
+          v-lazy="item"
+          :loan="item"
+        />
+      </div>
     </lazy-component>
   </div>
 </template>
@@ -37,7 +53,9 @@ export default {
       loading: false,
       finish: false,
       error: false,
-      list: [],
+      lista: [],
+      listb: [],
+      listc: [],
       originalList: [],
     })
 
@@ -45,11 +63,31 @@ export default {
     const filterBooks = () => {
       //   const search = searchValue.value.trim()
       const search = activeName.value
-
       if (search == 'a') {
-        userHistoryState.list = userHistoryState.originalList
+        userHistoryState.lista = userHistoryState.originalList
+        userHistoryState.originalList.forEach((loan) => {
+          if (loan.returnTime != null) {
+            userHistoryState.listb.push(loan)
+          } else {
+            userHistoryState.listc.push(loan)
+          }
+        })
+      } else if (search == 'b') {
+        //待归还
+        userHistoryState.listb = []
+        userHistoryState.originalList.forEach((loan) => {
+          if (loan.returnTime != null) {
+            userHistoryState.list.push(loan)
+          }
+        })
       } else {
-        userHistoryState.list = []
+        //已归还
+        userHistoryState.listc = []
+        userHistoryState.originalList.forEach((loan) => {
+          if (loan.returnTime == null) {
+            userHistoryState.list.push(loan)
+          }
+        })
       }
     }
     const getUserHistory = async () => {
