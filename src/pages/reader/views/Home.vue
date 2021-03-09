@@ -175,14 +175,6 @@
 <script>
 import BigButton from '@/pages/reader/components/BigButton';
 import BookCard from '@/pages/reader/components/BookCard';
-import axios from 'axios';
-import imageCompression from 'browser-image-compression';
-import { ActionSheet, Button, Col, Empty, Loading, NoticeBar, Row, Search, Toast, Uploader } from 'vant';
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useStore } from 'vuex';
-import BigButton from '@/pages/reader/components/BigButton';
-import BookCard from '@/pages/reader/components/BookCard';
 import LoanCard from '@/pages/reader/components/LoanCard';
 import axios from 'axios';
 import imageCompression from 'browser-image-compression';
@@ -341,12 +333,12 @@ export default {
           overlay: true,
           forbidClick: true,
           duration: 0,
-        })
-        setTimeout(() => store.dispatch('authenticateOidc'), 500)
-        return
+        });
+        setTimeout(() => store.dispatch('authenticateOidc'), 500);
+        return;
       }
-      router.push('/userhistory')
-    }
+      router.push('/userhistory');
+    };
 
     const afterRead = async file => {
       Toast.loading({
