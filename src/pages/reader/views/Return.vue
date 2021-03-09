@@ -9,19 +9,19 @@
         <!-- 左边书籍 -->
         <div class="position-image-item">
           <van-image
-            width="150px"
-            height="200px"
-            fit="contain"
             :src="`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/9787302330981.jpg`"
+            fit="contain"
+            height="200px"
+            width="150px"
           />
         </div>
         <!-- 右边书籍 -->
         <div class="position-image-item">
           <van-image
-            width="150px"
-            height="200px"
-            fit="contain"
             :src="`https://bookshelf-assets.oss-cn-shanghai.aliyuncs.com/covers/9787302330981.jpg`"
+            fit="contain"
+            height="200px"
+            width="150px"
           />
         </div>
       </div>
@@ -42,70 +42,68 @@
 </template>
 
 <script>
-import UploadImage from '../components/UploadImage'
-import Nav from '../components/Nav'
-import { Button, Image } from 'vant'
-import axios from 'axios'
+import axios from 'axios';
+import { Button, Image } from 'vant';
+
 
 export default {
   name: 'Return',
   components: {
-    UploadImage,
-    Nav,
     [Button.name]: Button,
     [Image.name]: Image,
   },
   data() {
     return {
       img: '',
-    }
+    };
   },
   methods: {
     getFile(e) {
-      let file = e.target.files[0]
-      console.log(file)
-      let param = new FormData() //创建form对象
-      param.append('file', file, file.name) //通过append向form对象添加数据
-      param.append('id', this.token)
-      console.log(file)
+      let file = e.target.files[0];
+      console.log(file);
+      let param = new FormData(); //创建form对象
+      param.append('file', file, file.name); //通过append向form对象添加数据
+      param.append('id', this.token);
+      console.log(file);
       let config = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-      } //添加请求头
+      }; //添加请求头
       axios.post('/wx/goods/uploadPicture', param, config).then((res) => {
-        if (res.data.code == 0) {
-          this.img = res.data.url
-          this.newImg = res.data.url
+        if (res.data.code === 0) {
+          this.img = res.data.url;
+          // this.newImg = res.data.url;
           // this.$Message.success(res.data.msg)
         } else {
           // this.$Message.error(res.data.msg)
         }
-      })
+      });
     },
     // 点击触发input的点击事件
     clickFile() {
-      this.$refs.leftFile.click()
+      this.$refs.leftFile.click();
     },
     onClickLeft() {
-      this.$router.go(-1)
+      this.$router.go(-1);
     },
   },
-}
+};
 </script>
 
 <style lang="scss" scoped>
 .container {
   margin-top: 5%;
-  margin-left: 5%;
   margin-right: 5%;
+  margin-left: 5%;
 }
 
 .book-title {
-  font-weight: bold;
   font-size: 20px;
+  font-weight: bold;
   margin-left: 10%;
 }
+
 .position-info {
   font-size: 16px;
   line-height: 50px;
@@ -122,7 +120,7 @@ export default {
 .position-image-item {
   display: inline-block;
   width: 80%;
-  margin-left: 10%;
   margin-right: 10%;
+  margin-left: 10%;
 }
 </style>
