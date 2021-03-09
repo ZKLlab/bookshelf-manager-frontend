@@ -3,6 +3,7 @@ import { vuexOidcCreateRouterMiddleware } from 'vuex-oidc';
 import store from '../store';
 import BookInfo from '../views/BookInfo.vue';
 import Borrow from '../views/Borrow.vue';
+import HistoryLoans from '../views/HistoryLoans.vue';
 import Home from '../views/Home.vue';
 import Return from '../views/Return.vue';
 
@@ -20,12 +21,12 @@ const routes = [
     path: '/borrow',
     name: 'Borrow',
     component: Borrow,
-    props: route => ({
+    props: (route) => ({
       codes: route.query.codes?.split(','),
     }),
   },
   {
-    path: '/bookinfo',
+    path: '/books/:id',
     name: 'BookInfo',
     component: BookInfo,
     meta: {
@@ -33,9 +34,17 @@ const routes = [
     },
   },
   {
-    path: '/return',
+    path: '/return/:id',
     name: 'Return',
     component: Return,
+    props: route => ({
+      id: route.params.id,
+    }),
+  },
+  {
+    path: '/history',
+    name: 'HistoryLoans',
+    component: HistoryLoans,
   },
 ];
 

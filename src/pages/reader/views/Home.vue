@@ -1,9 +1,13 @@
 <template>
   <div class="page-header">
-    <h2 v-if="oidcIsAuthenticated">欢迎，{{ oidcUser.family_name }}{{ oidcUser.given_name }}</h2>
+    <h2 v-if="oidcIsAuthenticated">
+      欢迎，{{ oidcUser.family_name }}{{ oidcUser.given_name }}
+    </h2>
     <h2 v-else @click="authenticateOidc">登录</h2>
     <div>
-      <a v-if="oidcIsAuthenticated" href="javascript:void(0)" @click="signOut">退出登录</a>
+      <a v-if="oidcIsAuthenticated" href="javascript:void(0)" @click="signOut">
+        退出登录
+      </a>
     </div>
   </div>
 
@@ -38,7 +42,7 @@
         />
       </van-col>
     </van-row>
-    <van-button block class="btn-loans" icon="clock-o">
+    <van-button block class="btn-loans" icon="clock-o" @click="showHistoryLoans">
       我的历史借阅
     </van-button>
   </div>
@@ -63,10 +67,18 @@
 
   <div class="book-list">
     <lazy-component>
-      <BookCard v-for="item in bookListState.list" :key="item.id" v-lazy="item" :book="item" />
-
+      <BookCard
+        v-for="item in bookListState.list"
+        v-bind:key="item.id"
+        v-lazy="item"
+        :book="item"
+      />
       <div
-        v-if="!bookListState.loading && !bookListState.error && bookListState.list.length > 0"
+        v-if="
+          !bookListState.loading &&
+          !bookListState.error &&
+          bookListState.list.length > 0
+        "
         class="book-list-finish"
       >
         已经到底了
@@ -75,7 +87,11 @@
   </div>
 
   <van-empty
-    v-if="!bookListState.loading && !bookListState.error && bookListState.list.length === 0"
+    v-if="
+      !bookListState.loading &&
+      !bookListState.error &&
+      bookListState.list.length === 0
+    "
     description="没有匹配的图书，换一个关键词试试~"
     image="search"
   />
@@ -88,7 +104,12 @@
     加载失败，点击此处重试
   </div>
 
-  <van-action-sheet v-model:show="showBorrowActionSheet" cancel-text="取消" close-on-popstate title="书籍借阅">
+  <van-action-sheet
+    v-model:show="showBorrowActionSheet"
+    cancel-text="取消"
+    close-on-popstate
+    title="图书借阅"
+  >
     <van-notice-bar
       v-if="oidcIsAuthenticated && !oidcUser.roles.includes('reader')"
       :scrollable="false"
@@ -97,7 +118,9 @@
       wrapable
     />
     <div class="borrow-action-sheet-wrapper">
-      <p class="action-sheet-section-header">选择本次借阅数量并上传书脊条码照片</p>
+      <p class="action-sheet-section-header">
+        选择本次借阅数量并上传书脊条码照片
+      </p>
       <van-row :gutter="8" class="borrow-number-row">
         <van-col v-for="i in 4" v-bind:key="i" :span="6">
           <van-button
@@ -107,7 +130,10 @@
             size="large"
             @click="numBorrowBooks = numBorrowBooks === i ? null : i"
           >
-            <span class="borrow-number-icon">{{ i }} <small>本</small></span>
+            <span class="borrow-number-icon">
+              {{ i }}
+              <small>本</small>
+            </span>
           </van-button>
         </van-col>
       </van-row>
@@ -120,7 +146,10 @@
             size="large"
             @click="numBorrowBooks = numBorrowBooks === i + 4 ? null : i + 4"
           >
-            <span class="borrow-number-icon">{{ i + 4 }} <small>本</small></span>
+            <span class="borrow-number-icon">
+              {{ i + 4 }}
+              <small>本</small>
+            </span>
           </van-button>
         </van-col>
       </van-row>
@@ -139,7 +168,13 @@
           size="large"
           type="primary"
         >
-          <strong>{{ numBorrowBooks == null ? '请先选择借阅数量' : `上传包含 ${numBorrowBooks} 个条码的图片` }}</strong>
+          <strong>
+            {{
+              numBorrowBooks == null
+                ? '请先选择借阅数量'
+                : `上传包含 ${numBorrowBooks} 个条码的图片`
+            }}
+          </strong>
         </van-button>
       </van-uploader>
 
@@ -150,19 +185,45 @@
     </div>
   </van-action-sheet>
 
-  <van-action-sheet v-model:show="showRenewActionSheet" cancel-text="取消" close-on-popstate title="书籍续借">
+  <van-action-sheet
+    v-model:show="showRenewActionSheet"
+    cancel-text="取消"
+    close-on-popstate
+    title="图书续借"
+  >
     <div class="loan-action-sheet-wrapper">
-      <LoanCard v-for="item in loansList" :key="item.id" :loan="item" renew @click="renewLoan(item)" />
+      <LoanCard
+        v-for="item in loansList"
+        :key="item.id"
+        :loan="item"
+        renew
+        @click="renewLoan(item)"
+      />
     </div>
-    <van-empty v-if="loansList.length === 0" description="找不到符合条件的借阅记录" />
+    <van-empty
+      v-if="loansList.length === 0"
+      description="找不到符合条件的借阅记录"
+    />
   </van-action-sheet>
 
-  <van-action-sheet v-model:show="showReturnActionSheet" cancel-text="取消" close-on-popstate title="书籍归还（调试用临时交互逻辑）">
+  <van-action-sheet
+    v-model:show="showReturnActionSheet"
+    cancel-text="取消"
+    close-on-popstate
+    title="图书归还"
+  >
     <div class="loan-action-sheet-wrapper">
-      <!-- 以下 @click 中的方法是临时的，之后应去掉 @click，改成路由导航到 to="..." -->
-      <LoanCard v-for="item in loansList" :key="item.id" :loan="item" @click="renewLoan(item, true)" />
+      <LoanCard
+        v-for="item in loansList"
+        v-bind:key="item.id"
+        :loan="item"
+        :to="`/return/${encodeURIComponent(item.id)}`"
+      />
     </div>
-    <van-empty v-if="loansList.length === 0" description="当前没有需要归还的图书" />
+    <van-empty
+      v-if="loansList.length === 0"
+      description="当前没有需要归还的图书"
+    />
   </van-action-sheet>
 </template>
 
@@ -235,27 +296,35 @@ export default {
       if (search.length > 0) {
         const keywordRegExps = search
           .split(/\s+/)
-          .map(word => new RegExp(word
-            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ui'));
+          .map(
+            (word) =>
+              new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ui'),
+          );
         const list = [];
-        bookListState.originalList.forEach(book => {
+        bookListState.originalList.forEach((book) => {
           let score = 0;
           if (book.isbn === search) {
             score += 10;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.title))) {
+          if (keywordRegExps.some((regExp) => regExp.test(book.title))) {
             score += 1;
           }
-          if (keywordRegExps.some(regExp => book.subjects.some(subject => regExp.test(subject)))) {
+          if (
+            keywordRegExps.some((regExp) =>
+              book.subjects.some((subject) => regExp.test(subject)),
+            )
+          ) {
             score += 0.9;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.author))) {
+          if (keywordRegExps.some((regExp) => regExp.test(book.author))) {
             score += 0.8;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.publisher))) {
+          if (keywordRegExps.some((regExp) => regExp.test(book.publisher))) {
             score += 0.7;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.parallelTitle))) {
+          if (
+            keywordRegExps.some((regExp) => regExp.test(book.parallelTitle))
+          ) {
             score += 0.6;
           }
           if (score > 0) {
@@ -267,7 +336,7 @@ export default {
         });
         list.sort((a, b) => b.score - a.score);
 
-        bookListState.list = list.map(item => item.book);
+        bookListState.list = list.map((item) => item.book);
       } else {
         bookListState.list = bookListState.originalList;
       }
@@ -321,7 +390,20 @@ export default {
       }
     };
 
-    const afterRead = async file => {
+    const showHistoryLoans = () => {
+      if (!store.getters.oidcIsAuthenticated) {
+        Toast('请先登录', {
+          overlay: true,
+          forbidClick: true,
+          duration: 0,
+        });
+        setTimeout(() => store.dispatch('authenticateOidc'), 500);
+        return;
+      }
+      router.push('/history');
+    };
+
+    const afterRead = async (file) => {
       Toast.loading({
         message: '压缩中...',
         forbidClick: true,
@@ -380,8 +462,15 @@ export default {
         loansList.value = [];
         try {
           await fetchLoans();
-          if (loansList.value.length > 0
-            && !loansList.value.some(loan => !loan.renewals.some(renewal => renewal.renewalReason === 'Unconditional'))) {
+          if (
+            loansList.value.length > 0 &&
+            !loansList.value.some(
+              (loan) =>
+                !loan.renewals.some(
+                  (renewal) => renewal.renewalReason === 'Unconditional',
+                ),
+            )
+          ) {
             Toast('没有可续借的图书');
           } else {
             Toast.clear();
@@ -409,21 +498,16 @@ export default {
       }
     };
 
-    const renewLoan = async (loan, isReturn) => {
+    const renewLoan = async loan => {
       const date = new Date();
       date.setDate(date.getDate() + 15);
       try {
-        if (!isReturn) {
-          await Dialog.confirm({
-            title: `确定要续借“${loan.holding.book.title}”吗？`,
-            message: `续借后请于${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日前归还。\n只能续借一次。`,
-          });
-        } else {
-          await Dialog.confirm({
-            title: `确定要归还“${loan.holding.book.title}”吗？`,
-            message: '这是一个临时的交互方式，\n仅在调试中使用。',
-          });
-        }
+        await Dialog.confirm({
+          title: `确定要续借“${loan.holding.book.title}”吗？`,
+          message: `续借后请于${date.getFullYear()}年${
+            date.getMonth() + 1
+          }月${date.getDate()}日前归还。\n只能续借一次。`,
+        });
       } catch (e) {
         return;
       }
@@ -433,10 +517,7 @@ export default {
           forbidClick: true,
           duration: 0,
         });
-        // 调试用
-        const response = !isReturn
-          ? await axios.post(`/api/loans/${encodeURIComponent(loan.id)}/renew`)
-          : await axios.post(`/api/loans/${encodeURIComponent(loan.id)}/return`);
+        const response = await axios.post(`/api/loans/${encodeURIComponent(loan.id)}/renew`);
         if (response.data.code === 200) {
           Toast.success({
             message: response.data.msg,
@@ -486,6 +567,7 @@ export default {
       showRenew,
       showReturn,
       renewLoan,
+      showHistoryLoans,
       signOut,
     };
   },
@@ -501,14 +583,16 @@ export default {
   }
 }
 
-.page-header, .part-header {
+.page-header,
+.part-header {
   display: flex;
   align-items: center;
   flex-direction: row;
   justify-content: space-between;
   padding: 0 12px 0 24px;
 
-  h2, h3 {
+  h2,
+  h3 {
     margin: 0 16px 0 0;
     white-space: nowrap;
   }

@@ -102,6 +102,7 @@ export default {
 }
 
 .loan-card__side {
+  line-height: 1;
   flex: 0 0 48px;
   width: 48px;
   margin-bottom: -8px;
@@ -116,6 +117,8 @@ export default {
     margin: 0;
     transform: scale(0.85);
     transform-origin: top center;
+    text-align: center;
+    white-space: nowrap;
     color: #969799;
   }
 }
