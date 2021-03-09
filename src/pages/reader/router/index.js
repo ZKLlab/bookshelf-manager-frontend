@@ -8,7 +8,6 @@ import Return from '../views/Return.vue';
 import UserHistory from '../views/UserHistory.vue';
 
 
-
 const routes = [
   {
     path: '/',
@@ -40,9 +39,12 @@ const routes = [
     component: UserHistory,
   },
   {
-    path: '/return',
+    path: '/return/:id',
     name: 'Return',
     component: Return,
+    props: route => ({
+      id: route.params.id,
+    }),
   },
 ];
 

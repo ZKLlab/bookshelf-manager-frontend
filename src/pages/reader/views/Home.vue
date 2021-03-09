@@ -69,7 +69,7 @@
     <lazy-component>
       <BookCard
         v-for="item in bookListState.list"
-        :key="item.id"
+        v-bind:key="item.id"
         v-lazy="item"
         :book="item"
       />
@@ -109,7 +109,7 @@
     v-model:show="showBorrowActionSheet"
     cancel-text="取消"
     close-on-popstate
-    title="书籍借阅"
+    title="图书借阅"
   >
     <van-notice-bar
       v-if="oidcIsAuthenticated && !oidcUser.roles.includes('reader')"
@@ -190,7 +190,7 @@
     v-model:show="showRenewActionSheet"
     cancel-text="取消"
     close-on-popstate
-    title="书籍续借"
+    title="图书续借"
   >
     <div class="loan-action-sheet-wrapper">
       <LoanCard
@@ -211,15 +211,14 @@
     v-model:show="showReturnActionSheet"
     cancel-text="取消"
     close-on-popstate
-    title="书籍归还（调试用临时交互逻辑）"
+    title="图书归还"
   >
     <div class="loan-action-sheet-wrapper">
-      <!-- 以下 @click 中的方法是临时的，之后应去掉 @click，改成路由导航到 to="..." -->
       <LoanCard
         v-for="item in loansList"
         :key="item.id"
         :loan="item"
-        @click="renewLoan(item, true)"
+        :to="`/return/${encodeURIComponent(item.id)}`"
       />
     </div>
     <van-empty
@@ -230,27 +229,16 @@
 </template>
 
 <script>
-import BigButton from '@/pages/reader/components/BigButton'
-import BookCard from '@/pages/reader/components/BookCard'
-import LoanCard from '@/pages/reader/components/LoanCard'
-import axios from 'axios'
-import imageCompression from 'browser-image-compression'
-import {
-  ActionSheet,
-  Button,
-  Col,
-  Dialog,
-  Empty,
-  Loading,
-  NoticeBar,
-  Row,
-  Search,
-  Toast,
-  Uploader,
-} from 'vant'
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useStore } from 'vuex'
+import BigButton from '@/pages/reader/components/BigButton';
+import BookCard from '@/pages/reader/components/BookCard';
+import LoanCard from '@/pages/reader/components/LoanCard';
+import axios from 'axios';
+import imageCompression from 'browser-image-compression';
+import { ActionSheet, Button, Col, Dialog, Empty, Loading, NoticeBar, Row, Search, Toast, Uploader } from 'vant';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
+
 
 export default {
   name: 'Home',
@@ -269,18 +257,18 @@ export default {
     [Uploader.name]: Uploader,
   },
   setup() {
-    const store = useStore()
-    const router = useRouter()
+    const store = useStore();
+    const router = useRouter();
 
-    const searchValue = ref('')
+    const searchValue = ref('');
 
-    const showBorrowActionSheet = ref(false)
-    const borrowBarcode = ref('')
-    const numBorrowBooks = ref(null)
+    const showBorrowActionSheet = ref(false);
+    const borrowBarcode = ref('');
+    const numBorrowBooks = ref(null);
 
-    const showRenewActionSheet = ref(false)
-    const showReturnActionSheet = ref(false)
-    const loansList = ref([])
+    const showRenewActionSheet = ref(false);
+    const showReturnActionSheet = ref(false);
+    const loansList = ref([]);
 
     const bookListState = reactive({
       loading: false,
@@ -288,100 +276,100 @@ export default {
       error: false,
       list: [],
       originalList: [],
-    })
+    });
 
     const getBooks = async () => {
-      bookListState.loading = true
+      bookListState.loading = true;
       try {
-        const response = await axios.get('/api/books')
-        bookListState.originalList = response.data.data
-        bookListState.error = false
-        filterBooks()
+        const response = await axios.get('/api/books');
+        bookListState.originalList = response.data.data;
+        bookListState.error = false;
+        filterBooks();
       } catch (e) {
-        bookListState.error = true
+        bookListState.error = true;
       } finally {
-        bookListState.loading = false
+        bookListState.loading = false;
       }
-    }
+    };
 
     const filterBooks = () => {
-      const search = searchValue.value.trim()
+      const search = searchValue.value.trim();
       if (search.length > 0) {
         const keywordRegExps = search
           .split(/\s+/)
           .map(
             (word) =>
               new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ui'),
-          )
-        const list = []
+          );
+        const list = [];
         bookListState.originalList.forEach((book) => {
-          let score = 0
+          let score = 0;
           if (book.isbn === search) {
-            score += 10
+            score += 10;
           }
           if (keywordRegExps.some((regExp) => regExp.test(book.title))) {
-            score += 1
+            score += 1;
           }
           if (
             keywordRegExps.some((regExp) =>
               book.subjects.some((subject) => regExp.test(subject)),
             )
           ) {
-            score += 0.9
+            score += 0.9;
           }
           if (keywordRegExps.some((regExp) => regExp.test(book.author))) {
-            score += 0.8
+            score += 0.8;
           }
           if (keywordRegExps.some((regExp) => regExp.test(book.publisher))) {
-            score += 0.7
+            score += 0.7;
           }
           if (
             keywordRegExps.some((regExp) => regExp.test(book.parallelTitle))
           ) {
-            score += 0.6
+            score += 0.6;
           }
           if (score > 0) {
             list.push({
               book,
               score,
-            })
+            });
           }
-        })
-        list.sort((a, b) => b.score - a.score)
+        });
+        list.sort((a, b) => b.score - a.score);
 
-        bookListState.list = list.map((item) => item.book)
+        bookListState.list = list.map((item) => item.book);
       } else {
-        bookListState.list = bookListState.originalList
+        bookListState.list = bookListState.originalList;
       }
-    }
+    };
 
-    let throttleTimer = null
-    let throttleTail = false
+    let throttleTimer = null;
+    let throttleTail = false;
 
     const search = () => {
       if (throttleTimer == null) {
-        filterBooks()
+        filterBooks();
         throttleTimer = setTimeout(() => {
-          throttleTimer = null
+          throttleTimer = null;
           if (throttleTail) {
-            throttleTail = false
-            search()
+            throttleTail = false;
+            search();
           }
-        }, 500)
+        }, 500);
       } else {
-        throttleTail = true
+        throttleTail = true;
       }
-    }
+    };
 
     onUnmounted(() => {
       if (throttleTimer != null) {
-        clearTimeout(throttleTimer)
+        clearTimeout(throttleTimer);
       }
-    })
+    });
 
     onMounted(async () => {
-      await getBooks()
-    })
+      await getBooks();
+    });
 
     const checkAuthenticated = () => {
       if (!store.getters.oidcIsAuthenticated) {
@@ -389,19 +377,19 @@ export default {
           overlay: true,
           forbidClick: true,
           duration: 0,
-        })
-        setTimeout(() => store.dispatch('authenticateOidc'), 500)
-        return false
+        });
+        setTimeout(() => store.dispatch('authenticateOidc'), 500);
+        return false;
       }
-      return true
-    }
+      return true;
+    };
 
     const showBorrow = () => {
       if (checkAuthenticated()) {
-        showBorrowActionSheet.value = true
-        numBorrowBooks.value = null
+        showBorrowActionSheet.value = true;
+        numBorrowBooks.value = null;
       }
-    }
+    };
 
     const showUserHistory = () => {
       if (!store.getters.oidcIsAuthenticated) {
@@ -409,72 +397,72 @@ export default {
           overlay: true,
           forbidClick: true,
           duration: 0,
-        })
-        setTimeout(() => store.dispatch('authenticateOidc'), 500)
-        return
+        });
+        setTimeout(() => store.dispatch('authenticateOidc'), 500);
+        return;
       }
-      router.push('/userhistory')
-    }
+      router.push('/userhistory');
+    };
 
     const afterRead = async (file) => {
       Toast.loading({
         message: '压缩中...',
         forbidClick: true,
         duration: 0,
-      })
+      });
       const compressedFile = await imageCompression(file.file, {
         maxSizeMB: 1,
         maxWidthOrHeight: 1920,
         useWebWorker: true,
-      })
+      });
       Toast.loading({
         message: '上传中...',
         forbidClick: true,
         duration: 0,
-      })
-      const formData = new FormData()
-      formData.append('file', compressedFile)
+      });
+      const formData = new FormData();
+      formData.append('file', compressedFile);
       try {
         const response = await axios.post('/api/barcode/image', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
-        })
-        Toast.clear()
+        });
+        Toast.clear();
         if (response.data.data.length === numBorrowBooks.value) {
           await router.push({
             path: '/borrow',
             query: {
               codes: response.data.data.join(','),
             },
-          })
+          });
         } else if (response.data.data.length > 0) {
-          Toast.fail('识别到的条码数量与选择数量的不一致')
+          Toast.fail('识别到的条码数量与选择数量的不一致');
         } else {
-          Toast.fail('没有识别到有效的条码')
+          Toast.fail('没有识别到有效的条码');
         }
       } catch (e) {
-        console.warn(e)
-        Toast.fail('识别失败，请重试')
+        console.warn(e);
+        Toast.fail('识别失败，请重试');
       }
-    }
+    };
 
     const fetchLoans = async () => {
       Toast.loading({
         message: '加载中...',
         forbidClick: true,
         duration: 0,
-      })
-      const response = await axios.get('/api/loans')
-      loansList.value = response.data.data
-    }
+      });
+      const response = await axios.get('/api/loans');
+      loansList.value = response.data.data;
+    };
 
     const showRenew = async () => {
       if (checkAuthenticated()) {
-        showRenewActionSheet.value = true
-        loansList.value = []
+        showRenewActionSheet.value = true;
+        loansList.value = [];
         try {
-          await fetchLoans()
+          await fetchLoans();
           if (
             loansList.value.length > 0 &&
             !loansList.value.some(
@@ -484,91 +472,81 @@ export default {
                 ),
             )
           ) {
-            Toast('没有可续借的图书')
+            Toast('没有可续借的图书');
           } else {
-            Toast.clear()
+            Toast.clear();
           }
         } catch (e) {
-          console.warn(e)
-          Toast.fail('加载失败，请重试')
-          showRenewActionSheet.value = false
+          console.warn(e);
+          Toast.fail('加载失败，请重试');
+          showRenewActionSheet.value = false;
         }
       }
-    }
+    };
 
     const showReturn = async () => {
       if (checkAuthenticated()) {
-        showReturnActionSheet.value = true
-        loansList.value = []
+        showReturnActionSheet.value = true;
+        loansList.value = [];
         try {
-          await fetchLoans()
-          Toast.clear()
+          await fetchLoans();
+          Toast.clear();
         } catch (e) {
-          console.warn(e)
-          Toast.fail('加载失败，请重试')
-          showReturnActionSheet.value = false
+          console.warn(e);
+          Toast.fail('加载失败，请重试');
+          showReturnActionSheet.value = false;
         }
       }
-    }
+    };
 
-    const renewLoan = async (loan, isReturn) => {
-      const date = new Date()
-      date.setDate(date.getDate() + 15)
+    const renewLoan = async loan => {
+      const date = new Date();
+      date.setDate(date.getDate() + 15);
       try {
-        if (!isReturn) {
-          await Dialog.confirm({
-            title: `确定要续借“${loan.holding.book.title}”吗？`,
-            message: `续借后请于${date.getFullYear()}年${
-              date.getMonth() + 1
-            }月${date.getDate()}日前归还。\n只能续借一次。`,
-          })
-        } else {
-          await Dialog.confirm({
-            title: `确定要归还“${loan.holding.book.title}”吗？`,
-            message: '这是一个临时的交互方式，\n仅在调试中使用。',
-          })
-        }
+        await Dialog.confirm({
+          title: `确定要续借“${loan.holding.book.title}”吗？`,
+          message: `续借后请于${date.getFullYear()}年${
+            date.getMonth() + 1
+          }月${date.getDate()}日前归还。\n只能续借一次。`,
+        });
       } catch (e) {
-        return
+        return;
       }
       try {
         Toast.loading({
           message: '续借中...',
           forbidClick: true,
           duration: 0,
-        })
-        // 调试用
-        const response = !isReturn
-          ? await axios.post(`/api/loans/${encodeURIComponent(loan.id)}/renew`)
-          : await axios.post(`/api/loans/${encodeURIComponent(loan.id)}/return`)
+        });
+        const response = await axios.post(`/api/loans/${encodeURIComponent(loan.id)}/renew`);
         if (response.data.code === 200) {
           Toast.success({
             message: response.data.msg,
             forbidClick: true,
             duration: 0,
-          })
+          });
           setTimeout(async () => {
             try {
-              await fetchLoans()
-              Toast.clear()
+              await fetchLoans();
+              Toast.clear();
             } catch (e) {
-              Toast.fail('加载新的续借列表失败，请重试')
-              showRenewActionSheet.value = false
+              Toast.fail('加载新的续借列表失败，请重试');
+              showRenewActionSheet.value = false;
             }
-          }, 300)
+          }, 300);
         } else {
-          Toast.fail(response.data.msg)
+          Toast.fail(response.data.msg);
         }
       } catch (e) {
-        console.warn(e)
-        Toast.fail('续借失败，请重试')
+        console.warn(e);
+        Toast.fail('续借失败，请重试');
       }
-    }
+    };
 
     const signOut = async () => {
-      await store.dispatch('signOutOidcSilent')
-      Toast('退出登录成功')
-    }
+      await store.dispatch('signOutOidcSilent');
+      Toast('退出登录成功');
+    };
 
     return {
       bookListState,
@@ -592,9 +570,9 @@ export default {
       renewLoan,
       showUserHistory,
       signOut,
-    }
+    };
   },
-}
+};
 </script>
 
 <style lang="scss" scoped>
