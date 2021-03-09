@@ -42,16 +42,12 @@
 </template>
 
 <script>
-import UploadImage from '../components/UploadImage'
-import Nav from '../components/Nav'
 import { Button, Image } from 'vant'
 import axios from 'axios'
 
 export default {
   name: 'Return',
   components: {
-    UploadImage,
-    Nav,
     [Button.name]: Button,
     [Image.name]: Image,
   },
