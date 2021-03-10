@@ -22,7 +22,7 @@
           <template v-else>已过期</template>
         </p>
         <p class="loan-info">
-          <strong>归还地点：</strong>{{ loan.holding.place }} / {{ loan.holding.shelf }}架 / {{ loan.holding.row }}行
+          <strong>归还位置：</strong>{{ loan.holding.place }} / {{ loan.holding.shelf }}架 / {{ loan.holding.row }}行
         </p>
         <p v-if="renew" class="loan-info">
           <strong>续借状态：</strong><span v-if="isRenewable()" class="highlight-text">可以续借</span><span v-else>已经续借过啦</span>

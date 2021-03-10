@@ -36,8 +36,15 @@
         :label="`位置：${item.place} / ${item.shelf}排 / ${item.row}行`"
         :title="`索书号：${item.callNumber}`"
       >
-        <div>条码号：{{ item.barcode }}</div>
-        <div>状态：{{ bookState[item.state] }}</div>
+        <template #extra>
+          <div>
+            <div>{{ item.barcode }}</div>
+            <van-tag v-if="item.state === 'Lending'" plain type="primary">归还</van-tag>
+            <van-tag v-else-if="item.state === 'Lent'" plain>已借出</van-tag>
+            <van-tag v-else-if="item.state === 'Reference'" plain type="warning">参考</van-tag>
+            <van-tag v-else-if="item.state === 'Closed'" plain>闭架</van-tag>
+          </div>
+        </template>
       </van-cell>
       <van-cell v-if="book.holdings.length === 0">
         这本书目前暂无藏书。
@@ -98,7 +105,7 @@
 
 <script>
 import axios from 'axios';
-import { Button, Cell, CellGroup, ImagePreview, Toast } from 'vant';
+import { Button, Cell, CellGroup, ImagePreview, Tag, Toast } from 'vant';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -109,18 +116,13 @@ export default {
     [Button.name]: Button,
     [Cell.name]: Cell,
     [CellGroup.name]: CellGroup,
+    [Tag.name]: Tag,
   },
   setup() {
     const route = useRoute();
     const router = useRouter();
 
     const { id } = route.params;
-    const bookState = {
-      Lending: '归还',
-      Lent: '已借出',
-      Reference: '参考',
-      Closed: '闭架',
-    };
     const book = ref(null);
 
     const fetchBookInfo = async () => {
@@ -172,7 +174,6 @@ export default {
 
     return {
       book,
-      bookState,
       showCover,
       back,
     };
@@ -256,7 +257,7 @@ export default {
 }
 
 .btn-back-wrapper {
-  padding: 24px 16px 48px;
+  padding: 24px 16px;
   text-align: center;
 }
 </style>
