@@ -1,29 +1,50 @@
 <template>
-  <van-tabs v-model:active="activeName" class="tabs" @click="filterLoans">
+  <van-tabs v-model:active="activeName" class="tabs">
     <van-tab name="listAll" title="全部" />
     <van-tab name="listLent" title="待归还" />
     <van-tab name="listReturned" title="已归还" />
   </van-tabs>
 
-  <div v-if="userHistoryState.loading" class="history-list-loading">
-    <van-loading size="24px">加载中...</van-loading>
+  <div class="list-container">
+    <div v-if="userHistoryState.loading" class="history-list-loading">
+      <van-loading size="24px">加载中...</van-loading>
+    </div>
+    <van-cell-group v-if="userHistoryState[activeName].length > 0" class="history-list">
+      <lazy-component>
+        <HistoryLoanCell
+          v-for="item in userHistoryState[activeName]"
+          v-bind:key="item.id"
+          v-lazy="item"
+          :loan="item"
+        />
+      </lazy-component>
+    </van-cell-group>
+    <div
+      v-if="!userHistoryState.loading && !userHistoryState.error && userHistoryState[activeName].length > 0"
+      class="history-list-finish"
+    >
+      已经到底了
+    </div>
+
+    <van-empty
+      v-if="!userHistoryState.loading && !userHistoryState.error && userHistoryState[activeName].length === 0"
+      description="此条件下没有借阅记录~"
+    />
+
+    <div
+      v-if="!userHistoryState.loading && userHistoryState.error"
+      class="history-list-finish"
+      @click="getUserHistory"
+    >
+      加载失败，点击此处重试
+    </div>
   </div>
-  <van-cell-group v-if="userHistoryState[activeName].length > 0" class="history-list">
-    <lazy-component>
-      <HistoryLoanCell
-        v-for="item in userHistoryState[activeName]"
-        :key="item.id"
-        v-lazy="item"
-        :loan="item"
-      />
-    </lazy-component>
-  </van-cell-group>
 </template>
 
 <script>
 import HistoryLoanCell from '@/pages/reader/components/HistoryLoanCell';
 import axios from 'axios';
-import { Card, CellGroup, Loading, Sticky, Tab, Tabs } from 'vant';
+import { Card, CellGroup, Empty, Loading, Sticky, Tab, Tabs } from 'vant';
 import { onMounted, reactive, ref } from 'vue';
 
 
@@ -33,6 +54,7 @@ export default {
     HistoryLoanCell,
     [Card.name]: Card,
     [CellGroup.name]: CellGroup,
+    [Empty.name]: Empty,
     [Loading.name]: Loading,
     [Sticky.name]: Sticky,
     [Tab.name]: Tab,
@@ -42,7 +64,6 @@ export default {
     const activeName = ref('listAll');
     const userHistoryState = reactive({
       loading: false,
-      finish: false,
       error: false,
       listAll: [],
       listLent: [],
@@ -52,8 +73,8 @@ export default {
     const getUserHistory = async () => {
       userHistoryState.loading = true;
       try {
-        const response = await axios.get('/api/loans?mode=all');
         userHistoryState.loading = true;
+        const response = await axios.get('/api/loans?mode=all');
         userHistoryState.listAll = response.data.data;
         userHistoryState.listLent = userHistoryState.listAll.filter(loan => loan.returnTime == null);
         userHistoryState.listReturned = userHistoryState.listAll.filter(loan => loan.returnTime != null);
@@ -72,6 +93,7 @@ export default {
     return {
       userHistoryState,
       activeName,
+      getUserHistory,
     };
   },
 };
@@ -92,7 +114,7 @@ h3 {
   white-space: nowrap;
 }
 
-.history-list {
+.list-container {
   margin-top: 44px;
 }
 
@@ -103,22 +125,11 @@ h3 {
   color: grey;
 }
 
-.book-list-finish {
+.history-list-finish {
   font-size: 12px;
   padding: 16px 0 48px;
   text-align: center;
   color: #646566;
-}
-
-.book-card-button {
-  height: auto;
-  margin-bottom: 12px;
-  padding: 0;
-  text-align: left;
-  // noinspection CssInvalidPseudoSelector
-  & :deep(.van-button__content) {
-    display: block;
-  }
 }
 
 .book-card {
