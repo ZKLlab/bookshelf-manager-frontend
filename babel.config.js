@@ -6,7 +6,12 @@ module.exports = {
     ['import', {
       libraryName: 'vant',
       libraryDirectory: 'es',
-      style: true
-    }, 'vant']
-  ]
+      style: true,
+    }, 'vant'],
+    ['import', {
+      libraryName: 'ant-design-vue',
+      libraryDirectory: 'es',
+      style: 'css',
+    }],
+  ],
 };
