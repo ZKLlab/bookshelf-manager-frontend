@@ -1,9 +1,13 @@
 <template>
   <div class="page-header">
-    <h2 v-if="oidcIsAuthenticated">欢迎，{{ oidcUser.family_name }}{{ oidcUser.given_name }}</h2>
+    <h2 v-if="oidcIsAuthenticated">
+      欢迎，{{ oidcUser.family_name }}{{ oidcUser.given_name }}
+    </h2>
     <h2 v-else @click="authenticateOidc">登录</h2>
     <div>
-      <a v-if="oidcIsAuthenticated" href="javascript:void(0)" @click="signOut">退出登录</a>
+      <a v-if="oidcIsAuthenticated" href="javascript:void(0)" @click="signOut">
+        退出登录
+      </a>
     </div>
   </div>
 
@@ -25,6 +29,7 @@
           first-line="续借"
           large-text="续"
           second-line="点此续借"
+          @click="showRenew"
         />
       </van-col>
       <van-col :span="8">
@@ -33,10 +38,11 @@
           first-line="还书"
           large-text="还"
           second-line="点此还书"
+          @click="showReturn"
         />
       </van-col>
     </van-row>
-    <van-button block class="btn-loans" icon="clock-o">
+    <van-button block class="btn-loans" icon="clock-o" @click="showHistoryLoans">
       我的历史借阅
     </van-button>
   </div>
@@ -61,10 +67,18 @@
 
   <div class="book-list">
     <lazy-component>
-      <BookCard v-for="item in bookListState.list" :key="item.id" v-lazy="item" :book="item" />
-
+      <BookCard
+        v-for="item in bookListState.list"
+        v-bind:key="item.id"
+        v-lazy="item"
+        :book="item"
+      />
       <div
-        v-if="!bookListState.loading && !bookListState.error && bookListState.list.length > 0"
+        v-if="
+          !bookListState.loading &&
+          !bookListState.error &&
+          bookListState.list.length > 0
+        "
         class="book-list-finish"
       >
         已经到底了
@@ -73,7 +87,11 @@
   </div>
 
   <van-empty
-    v-if="!bookListState.loading && !bookListState.error && bookListState.list.length === 0"
+    v-if="
+      !bookListState.loading &&
+      !bookListState.error &&
+      bookListState.list.length === 0
+    "
     description="没有匹配的图书，换一个关键词试试~"
     image="search"
   />
@@ -86,16 +104,23 @@
     加载失败，点击此处重试
   </div>
 
-  <van-action-sheet v-model:show="showBorrowActionSheet" cancel-text="取消" close-on-popstate title="书籍借阅">
+  <van-action-sheet
+    v-model:show="showBorrowActionSheet"
+    cancel-text="取消"
+    close-on-popstate
+    title="图书借阅"
+  >
     <van-notice-bar
-      v-if="oidcIsAuthenticated && oidcUser.roles.indexOf('reader') < 0"
+      v-if="oidcIsAuthenticated && !oidcUser.roles.includes('reader')"
       :scrollable="false"
       left-icon="warning-o"
       text="很抱歉，你似乎没有借阅权限。如有疑问，请与管理员取得联系。"
       wrapable
     />
     <div class="borrow-action-sheet-wrapper">
-      <p class="borrow-action-sheet-section-header">选择本次借阅数量并上传书脊条码照片</p>
+      <p class="action-sheet-section-header">
+        选择本次借阅数量并上传书脊条码照片
+      </p>
       <van-row :gutter="8" class="borrow-number-row">
         <van-col v-for="i in 4" v-bind:key="i" :span="6">
           <van-button
@@ -105,7 +130,10 @@
             size="large"
             @click="numBorrowBooks = numBorrowBooks === i ? null : i"
           >
-            <span class="borrow-number-icon">{{ i }} <small>本</small></span>
+            <span class="borrow-number-icon">
+              {{ i }}
+              <small>本</small>
+            </span>
           </van-button>
         </van-col>
       </van-row>
@@ -118,7 +146,10 @@
             size="large"
             @click="numBorrowBooks = numBorrowBooks === i + 4 ? null : i + 4"
           >
-            <span class="borrow-number-icon">{{ i + 4 }} <small>本</small></span>
+            <span class="borrow-number-icon">
+              {{ i + 4 }}
+              <small>本</small>
+            </span>
           </van-button>
         </van-col>
       </van-row>
@@ -137,24 +168,74 @@
           size="large"
           type="primary"
         >
-          <strong>{{ numBorrowBooks == null ? '请先选择借阅数量' : `上传包含 ${numBorrowBooks} 个条码的图片` }}</strong>
+          <strong>
+            {{
+              numBorrowBooks == null
+                ? '请先选择借阅数量'
+                : `上传包含 ${numBorrowBooks} 个条码的图片`
+            }}
+          </strong>
         </van-button>
       </van-uploader>
 
-      <p class="borrow-action-sheet-section-header">或者</p>
-      <van-button block icon="edit" size="large">
-        <strong>手动输入条码</strong>
+      <p class="action-sheet-section-header">或者</p>
+      <van-button block icon="edit" size="large" to="/borrow">
+        <strong>手动输入条码号</strong>
       </van-button>
     </div>
+  </van-action-sheet>
+
+  <van-action-sheet
+    v-model:show="showRenewActionSheet"
+    cancel-text="取消"
+    close-on-popstate
+    title="图书续借"
+  >
+    <div class="loan-action-sheet-wrapper">
+      <LoanCard
+        v-for="item in loansList"
+        :key="item.id"
+        :loan="item"
+        renew
+        @click="renewLoan(item)"
+      />
+    </div>
+    <van-empty
+      v-if="loansList.length === 0"
+      description="找不到符合条件的借阅记录"
+    />
+  </van-action-sheet>
+
+  <van-action-sheet
+    v-model:show="showReturnActionSheet"
+    cancel-text="取消"
+    close-on-popstate
+    title="图书归还"
+  >
+    <div class="loan-action-sheet-wrapper">
+      <LoanCard
+        v-for="item in loansList"
+        v-bind:key="item.id"
+        :loan="item"
+        :to="`/return/${encodeURIComponent(item.id)}`"
+      />
+    </div>
+    <van-empty
+      v-if="loansList.length === 0"
+      description="当前没有需要归还的图书"
+    />
   </van-action-sheet>
 </template>
 
 <script>
 import BigButton from '@/pages/reader/components/BigButton';
 import BookCard from '@/pages/reader/components/BookCard';
+import LoanCard from '@/pages/reader/components/LoanCard';
 import axios from 'axios';
-import { ActionSheet, Button, Col, Empty, Loading, NoticeBar, Row, Search, Toast, Uploader } from 'vant';
+import imageCompression from 'browser-image-compression';
+import { ActionSheet, Button, Col, Dialog, Empty, Loading, NoticeBar, Row, Search, Toast, Uploader } from 'vant';
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 
 
@@ -163,6 +244,7 @@ export default {
   components: {
     BigButton,
     BookCard,
+    LoanCard,
     [ActionSheet.name]: ActionSheet,
     [Button.name]: Button,
     [Empty.name]: Empty,
@@ -175,11 +257,17 @@ export default {
   },
   setup() {
     const store = useStore();
+    const router = useRouter();
 
     const searchValue = ref('');
+
     const showBorrowActionSheet = ref(false);
     const borrowBarcode = ref('');
     const numBorrowBooks = ref(null);
+
+    const showRenewActionSheet = ref(false);
+    const showReturnActionSheet = ref(false);
+    const loansList = ref([]);
 
     const bookListState = reactive({
       loading: false,
@@ -208,27 +296,35 @@ export default {
       if (search.length > 0) {
         const keywordRegExps = search
           .split(/\s+/)
-          .map(word => new RegExp(word
-            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ui'));
+          .map(
+            (word) =>
+              new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ui'),
+          );
         const list = [];
-        bookListState.originalList.forEach(book => {
+        bookListState.originalList.forEach((book) => {
           let score = 0;
           if (book.isbn === search) {
             score += 10;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.title))) {
+          if (keywordRegExps.some((regExp) => regExp.test(book.title))) {
             score += 1;
           }
-          if (keywordRegExps.some(regExp => book.subjects.some(subject => regExp.test(subject)))) {
+          if (
+            keywordRegExps.some((regExp) =>
+              book.subjects.some((subject) => regExp.test(subject)),
+            )
+          ) {
             score += 0.9;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.author))) {
+          if (keywordRegExps.some((regExp) => regExp.test(book.author))) {
             score += 0.8;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.publisher))) {
+          if (keywordRegExps.some((regExp) => regExp.test(book.publisher))) {
             score += 0.7;
           }
-          if (keywordRegExps.some(regExp => regExp.test(book.parallelTitle))) {
+          if (
+            keywordRegExps.some((regExp) => regExp.test(book.parallelTitle))
+          ) {
             score += 0.6;
           }
           if (score > 0) {
@@ -240,7 +336,7 @@ export default {
         });
         list.sort((a, b) => b.score - a.score);
 
-        bookListState.list = list.map(item => item.book);
+        bookListState.list = list.map((item) => item.book);
       } else {
         bookListState.list = bookListState.originalList;
       }
@@ -274,7 +370,27 @@ export default {
       await getBooks();
     });
 
+    const checkAuthenticated = () => {
+      if (!store.getters.oidcIsAuthenticated) {
+        Toast('请先登录', {
+          overlay: true,
+          forbidClick: true,
+          duration: 0,
+        });
+        setTimeout(() => store.dispatch('authenticateOidc'), 500);
+        return false;
+      }
+      return true;
+    };
+
     const showBorrow = () => {
+      if (checkAuthenticated()) {
+        showBorrowActionSheet.value = true;
+        numBorrowBooks.value = null;
+      }
+    };
+
+    const showHistoryLoans = () => {
       if (!store.getters.oidcIsAuthenticated) {
         Toast('请先登录', {
           overlay: true,
@@ -284,20 +400,27 @@ export default {
         setTimeout(() => store.dispatch('authenticateOidc'), 500);
         return;
       }
-      showBorrowActionSheet.value = true;
-      numBorrowBooks.value = null;
+      router.push('/history');
     };
 
-    const afterRead = async file => {
-      // 此时可以自行将文件上传至服务器
-      console.log(file.file);
+    const afterRead = async (file) => {
+      Toast.loading({
+        message: '压缩中...',
+        forbidClick: true,
+        duration: 0,
+      });
+      const compressedFile = await imageCompression(file.file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      });
       Toast.loading({
         message: '上传中...',
         forbidClick: true,
         duration: 0,
       });
       const formData = new FormData();
-      formData.append('file', file.file);
+      formData.append('file', compressedFile);
       try {
         const response = await axios.post('/api/barcode/image', formData, {
           headers: {
@@ -306,14 +429,116 @@ export default {
         });
         Toast.clear();
         if (response.data.data.length === numBorrowBooks.value) {
-          console.log(response.data.data);
+          await router.push({
+            path: '/borrow',
+            query: {
+              codes: response.data.data.join(','),
+            },
+          });
         } else if (response.data.data.length > 0) {
           Toast.fail('识别到的条码数量与选择数量的不一致');
         } else {
           Toast.fail('没有识别到有效的条码');
         }
       } catch (e) {
+        console.warn(e);
         Toast.fail('识别失败，请重试');
+      }
+    };
+
+    const fetchLoans = async () => {
+      Toast.loading({
+        message: '加载中...',
+        forbidClick: true,
+        duration: 0,
+      });
+      const response = await axios.get('/api/loans');
+      loansList.value = response.data.data;
+    };
+
+    const showRenew = async () => {
+      if (checkAuthenticated()) {
+        showRenewActionSheet.value = true;
+        loansList.value = [];
+        try {
+          await fetchLoans();
+          if (
+            loansList.value.length > 0 &&
+            !loansList.value.some(
+              (loan) =>
+                !loan.renewals.some(
+                  (renewal) => renewal.renewalReason === 'Unconditional',
+                ),
+            )
+          ) {
+            Toast('没有可续借的图书');
+          } else {
+            Toast.clear();
+          }
+        } catch (e) {
+          console.warn(e);
+          Toast.fail('加载失败，请重试');
+          showRenewActionSheet.value = false;
+        }
+      }
+    };
+
+    const showReturn = async () => {
+      if (checkAuthenticated()) {
+        showReturnActionSheet.value = true;
+        loansList.value = [];
+        try {
+          await fetchLoans();
+          Toast.clear();
+        } catch (e) {
+          console.warn(e);
+          Toast.fail('加载失败，请重试');
+          showReturnActionSheet.value = false;
+        }
+      }
+    };
+
+    const renewLoan = async loan => {
+      const date = new Date();
+      date.setDate(date.getDate() + 15);
+      try {
+        await Dialog.confirm({
+          title: `确定要续借“${loan.holding.book.title}”吗？`,
+          message: `续借后请于${date.getFullYear()}年${
+            date.getMonth() + 1
+          }月${date.getDate()}日前归还。\n只能续借一次。`,
+        });
+      } catch (e) {
+        return;
+      }
+      try {
+        Toast.loading({
+          message: '续借中...',
+          forbidClick: true,
+          duration: 0,
+        });
+        const response = await axios.post(`/api/loans/${encodeURIComponent(loan.id)}/renew`);
+        if (response.data.code === 200) {
+          Toast.success({
+            message: response.data.msg,
+            forbidClick: true,
+            duration: 0,
+          });
+          setTimeout(async () => {
+            try {
+              await fetchLoans();
+              Toast.clear();
+            } catch (e) {
+              Toast.fail('加载新的续借列表失败，请重试');
+              showRenewActionSheet.value = false;
+            }
+          }, 300);
+        } else {
+          Toast.fail(response.data.msg);
+        }
+      } catch (e) {
+        console.warn(e);
+        Toast.fail('续借失败，请重试');
       }
     };
 
@@ -328,14 +553,21 @@ export default {
       showBorrowActionSheet,
       borrowBarcode,
       numBorrowBooks,
+      showRenewActionSheet,
+      showReturnActionSheet,
+      loansList,
       getBooks,
       filterBooks,
       search,
       oidcUser: computed(() => store.getters.oidcUser),
       oidcIsAuthenticated: computed(() => store.getters.oidcIsAuthenticated),
       authenticateOidc: () => store.dispatch('authenticateOidc'),
-      showBorrow,
       afterRead,
+      showBorrow,
+      showRenew,
+      showReturn,
+      renewLoan,
+      showHistoryLoans,
       signOut,
     };
   },
@@ -351,14 +583,16 @@ export default {
   }
 }
 
-.page-header, .part-header {
+.page-header,
+.part-header {
   display: flex;
   align-items: center;
   flex-direction: row;
   justify-content: space-between;
   padding: 0 12px 0 24px;
 
-  h2, h3 {
+  h2,
+  h3 {
     margin: 0 16px 0 0;
     white-space: nowrap;
   }
@@ -370,7 +604,6 @@ export default {
   h3 {
     font-size: 18px;
   }
-
 
   a {
     font-size: 14px;
@@ -425,7 +658,7 @@ export default {
   padding: 0 12px 12px;
 }
 
-.borrow-action-sheet-section-header {
+.action-sheet-section-header {
   font-size: 13px;
   padding: 0 8px;
   text-align: center;
@@ -443,5 +676,9 @@ export default {
   :deep(.van-uploader__wrapper) {
     display: block;
   }
+}
+
+.loan-action-sheet-wrapper {
+  padding: 0 12px;
 }
 </style>

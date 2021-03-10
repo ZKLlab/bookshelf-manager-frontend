@@ -1,5 +1,5 @@
 <template>
-  <van-button block class="book-card-button">
+  <van-button :to="`/books/${book.id}`" block class="book-card-button">
     <div class="book-card">
       <img
         :alt="book.title"

@@ -1,11 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { vuexOidcCreateRouterMiddleware } from 'vuex-oidc';
 import store from '../store';
-import Home from '../views/Home.vue';
-import Borrow from '../views/Borrow.vue';
-import Return from '../views/Return.vue';
-import User from '../views/User.vue';
 import BookInfo from '../views/BookInfo.vue';
+import Borrow from '../views/Borrow.vue';
+import HistoryLoans from '../views/HistoryLoans.vue';
+import Home from '../views/Home.vue';
+import Return from '../views/Return.vue';
+
 
 const routes = [
   {
@@ -17,21 +18,15 @@ const routes = [
     },
   },
   {
-    path: '/user',
-    name: 'User',
-    component: User,
-   
-  },
-  {
     path: '/borrow',
     name: 'Borrow',
     component: Borrow,
-    meta: {
-      isPublic: true,
-    },
+    props: (route) => ({
+      codes: route.query.codes?.split(','),
+    }),
   },
   {
-    path: '/bookinfo',
+    path: '/books/:id',
     name: 'BookInfo',
     component: BookInfo,
     meta: {
@@ -39,17 +34,17 @@ const routes = [
     },
   },
   {
-    path: '/return',
+    path: '/return/:id',
     name: 'Return',
     component: Return,
-    meta: {
-      isPublic: true,
-    },
+    props: route => ({
+      id: route.params.id,
+    }),
   },
   {
-    path: '/about',
-    name: 'About',
-    component: () => import(/* webpackChunkName: "about" */ '../views/About.vue'),
+    path: '/history',
+    name: 'HistoryLoans',
+    component: HistoryLoans,
   },
 ];
 
