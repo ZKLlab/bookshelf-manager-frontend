@@ -46,7 +46,7 @@
 
     <van-cell-group title="图书归还位置提示">
       <van-cell class="loan-info-cell">
-        <van-row :gutter="8" align="center">
+        <van-row align="center">
           <van-col v-if="leftHolding != null" :span="9">
             <div class="related-holding-col">
               <img
@@ -575,7 +575,6 @@ export default {
   font-size: 13px;
   line-height: 1.8;
   text-align: center;
-  color: #969799;
 
   &:not(.whole) {
     margin: 0 0 16px;

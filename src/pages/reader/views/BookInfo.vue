@@ -37,7 +37,7 @@
         :title="`索书号：${item.callNumber}`"
       >
         <template #extra>
-          <div>
+          <div class="holding-extra-info">
             <div>{{ item.barcode }}</div>
             <van-tag v-if="item.state === 'Lending'" plain type="primary">归还</van-tag>
             <van-tag v-else-if="item.state === 'Lent'" plain>已借出</van-tag>
@@ -259,5 +259,9 @@ export default {
 .btn-back-wrapper {
   padding: 24px 16px;
   text-align: center;
+}
+
+.holding-extra-info {
+  text-align: right;
 }
 </style>
