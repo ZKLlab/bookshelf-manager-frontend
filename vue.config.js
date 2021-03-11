@@ -37,4 +37,16 @@ module.exports = {
       chunks: ['chunk-vendors', 'chunk-common', 'silent-signin-callback'],
     },
   },
+  chainWebpack: config => {
+    config.optimization.splitChunks({
+      cacheGroups: {
+        vendors: {
+          name: 'chunk-vendors',
+          minChunks: 2,
+          chunks: 'initial',
+        },
+        common: {},
+      },
+    });
+  },
 };
