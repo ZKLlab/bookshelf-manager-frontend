@@ -1,30 +1,12 @@
 <template>
   <a-table :columns="columns" :data-source="bookListState.list" class="components-table-demo-nested" row-key="id"
            @expand="listenRow">
-    <template #subjects="{ text:subjects }">
-      {{ subjects.join('—') }}
-    </template>
-    <template #operation>
-      <a>修改</a>
-    </template>
     <template #expandedRowRender="{record}">
       <a-table :columns="innerColumns" :data-source="record.holdings" :pagination="false" row-key="id">
         <template #operation="{record:holding}">
           <span class="table-operation">
             <a :download="`${holding.barcode}.png`"
                :href="`/api/label?callNumber=${encodeURIComponent(holding.callNumber)}&barcode=${encodeURIComponent(holding.barcode)}`">下载标签</a>
-            <a-dropdown>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item>续借</a-menu-item>
-                  <a-menu-item>修改</a-menu-item>
-                </a-menu>
-              </template>
-              <a>
-                更多
-                <down-outlined />
-              </a>
-            </a-dropdown>
           </span>
         </template>
       </a-table>
@@ -33,12 +15,9 @@
 </template>
 
 <script>
-import { DownOutlined } from '@ant-design/icons-vue';
 import axios from 'axios';
 import { defineComponent, reactive } from 'vue';
 
-
-const status = 'success';
 
 const columns = [
   {
@@ -62,42 +41,12 @@ const columns = [
     key: 'isbn',
   },
   {
-    title: '分类',
-    dataIndex: 'subjects',
-    key: 'subjects',
-    slots: {
-      customRender: 'subjects',
-    },
-  },
-  {
     title: '简介',
     dataIndex: 'summary',
     key: 'summary',
     ellipsis: true,
   },
-  {
-    title: '操作',
-    key: 'operation',
-    slots: {
-      customRender: 'operation',
-    },
-  },
 ];
-
-/*
-const data = [];
-
-for (let i = 0; i < 2; ++i) {
-  data.push({
-    key: i,
-    title: '软件工程导论',
-    author: '张海藩，牟永敏编著',
-    publisher: '清华大学出版社',
-    isbn: '9787302330981',
-    subject: '软件工程',
-    summary: '本书全面系统地讲述了软件工程的概念、原理和典型的方法学，并介绍了软件项目的管理技术。',
-  });
-}*/
 
 const innerColumns = [
   {
@@ -144,26 +93,9 @@ const innerColumns = [
     },
   },
 ];
-const innerData = [];
-
-for (let i = 0; i < 3; ++i) {
-  innerData.push({
-    key: i,
-    barcode: '6824191',
-    place: '东区计511',
-    state: 'Lending',
-    version: 13,
-  });
-}
 
 export default defineComponent({
-  components: {
-    DownOutlined,
-  },
-
   setup() {
-
-
     const bookListState = reactive({
       loading: false,
       error: false,
@@ -197,8 +129,6 @@ export default defineComponent({
     return {
       columns,
       innerColumns,
-      innerData,
-      status,
       getBookList,
       bookListState,
       listenRow,

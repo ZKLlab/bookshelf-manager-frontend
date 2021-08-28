@@ -1,4 +1,4 @@
-import { Badge, Dropdown, Layout, Menu, Table } from 'ant-design-vue';
+import { Layout, Menu, Table } from 'ant-design-vue';
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
@@ -11,6 +11,4 @@ createApp(App)
   .use(Layout)
   .use(Menu)
   .use(Table)
-  .use(Badge)
-  .use(Dropdown)
   .mount('#app');
