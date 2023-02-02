@@ -16,7 +16,7 @@
     "oidc-client": "^1.11.3",
     "vant": "^3.0.6",
     "vue": "^3.0.0",
-    "vue-resource": "^1.5.1",
+    "vue-resource": "^1.5.3",
     "vue-router": "^4.0.4",
     "vuex": "^4.0.0-0",
     "vuex-oidc": "^3.10.2"
